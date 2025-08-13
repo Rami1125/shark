@@ -202,13 +202,18 @@ function renderDaysChart(orders){
 }
 
 // Popup
+function sanitizeKey(key) {
+  return key.replace(/[^a-zA-Z0-9]/g, "_");
+}
+
 function openPopup(index){
   currentEdit=index;
   const order=allOrders[index];
   const container=document.getElementById('popupFields');
   container.innerHTML='';
   for(const key in order){
-    container.innerHTML+=`<label>${key}</label><input type="text" id="popup_${key}" value="${order[key]}">`;
+    const safeKey = sanitizeKey(key);
+    container.innerHTML+=`<label>${key}</label><input type="text" id="popup_${safeKey}" value="${order[key]}">`;
   }
   document.getElementById('popupOverlay').style.display='flex';
 }
@@ -238,6 +243,24 @@ function newOrder(){
   allOrders.push(newO);
   openPopup(allOrders.length-1);
 }
+function savePopup(){
+  if(currentEdit===null) return;
+  const order=allOrders[currentEdit];
+  for(const key in order){
+    const safeKey = sanitizeKey(key);
+    const el = document.getElementById(`popup_${safeKey}`);
+    if(el) order[key] = el.value;
+  }
+  fetch(`${SCRIPT_URL}?action=update&index=${currentEdit}`,{
+    method:'POST',
+    body:JSON.stringify(order),
+    headers:{'Content-Type':'application/json'}
+  }).then(r=>r.json()).then(res=>{
+    if(res.success){ updateDashboard(allOrders); closePopup(); }
+    else alert('שגיאה בעדכון ההזמנה');
+  });
+}
+  
 
 fetchOrders();
 </script>
