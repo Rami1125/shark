@@ -1,1101 +1,715 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>לוח בקרה לניהול שכירות מכולות</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Rubik -->
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* Apply border-box to all elements for consistent sizing */
-        * {
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>לוח בקרה לניהול מכולות - עיצוב משודרג</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* הגדרות כלליות */
+  body {
+    font-family: 'Heebo', sans-serif;
+    direction: rtl;
+    background: linear-gradient(135deg, #e0f2f7, #f0f8ff); /* רקע בהיר: כחול בהיר מאוד ולבן */
+    color: #333; /* טקסט כהה */
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    color: #4f46e5; /* כחול כהה לכותרות */
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 700;
+    font-size: 2.5rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+  }
 
-        /* Rubik Font and RTL direction for the body */
-        body {
-            font-family: 'Rubik', sans-serif;
-            background: linear-gradient(135deg, #1e3c72, #2a5298); /* Deep blue gradient background */
-            min-height: 100vh;
-            color: #fff; /* White text for contrast */
-            direction: rtl; /* Ensure RTL for the entire body */
-            padding: 15px; /* General padding */
-            overflow-x: hidden; /* Prevent horizontal scroll on smaller screens */
-        }
-        
-        /* Main Heading */
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: 700;
-            color: #fff; /* White text */
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Subtle text shadow */
-        }
+  /* כפתורים, אינפוטים וסלקטים בעיצוב מודרני */
+  .controls button, .controls input, .controls select {
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* צל עדין */
+  }
 
-        /* Styling for card-like containers */
-        .container-card {
-            background: rgba(255,255,255,0.15); /* Semi-transparent white */
-            backdrop-filter: blur(12px); /* Frosted glass effect */
-            border-radius: 15px; /* Rounded corners */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow */
-            padding: 1.5rem; /* Padding */
-            transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions for hover */
-        }
-        .container-card:hover {
-            transform: translateY(-5px); /* Lift effect on hover */
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4); /* Enhanced shadow on hover */
-        }
+  .controls button {
+    background: #7c3aed; /* סגול נוצץ */
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+  }
+  .controls button:hover {
+    background: #8b5cf6; /* סגול בהיר יותר במעבר עכבר */
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  }
+  .controls button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
 
-        /* Highlight for overdue rows in the table */
-        .overdue-row {
-            background-color: #fee2e2 !important; /* Red-100, !important to override hover */
-            color: #ef4444 !important; /* Red-500 */
-            font-weight: 500; /* font-medium */
-        }
+  /* אפקט נצנצים על כפתור */
+  .controls button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: all 0.6s ease;
+  }
+  .controls button:hover::before {
+    left: 100%;
+  }
 
-        /* Highlight for approaching overdue rows */
-        .approaching-overdue-row {
-            background-color: #ffedd5 !important; /* Orange-100 */
-            color: #f97316 !important; /* Orange-500 */
-            font-weight: 500;
-        }
+  .controls input, .controls select {
+    background: #f0f8ff; /* לבן בהיר */
+    color: #333;
+    border: 1px solid #d1d5db;
+  }
+  .controls input::placeholder {
+    color: #6b7280;
+  }
 
-        /* Style for toast notifications */
-        .toast-container {
-            position: fixed;
-            top: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            max-width: 90%;
-            width: 300px;
-        }
-        .toast {
-            background-color: #333;
-            color: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            text-align: center;
-        }
-        .toast.show {
-            opacity: 1;
-        }
-        .toast.success { background-color: #10b981; } /* Green-500 */
-        .toast.error { background-color: #ef4444; } /* Red-500 */
-        .toast.info { background-color: #3b82f6; } /* Blue-500 */
+  /* מדדים */
+  .metric {
+    background: #fff;
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e2e8f0;
+  }
+  .metric:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+  }
+  .metric span {
+    display: block;
+    margin-top: 10px;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #7c3aed; /* סגול */
+  }
 
-        /* Modal styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-        }
-        .modal-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        .modal-content {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transform: translateY(-20px);
-            transition: transform 0.3s ease-in-out;
-            color: #333; /* Darker text for modal content */
-        }
-        .modal-overlay.show .modal-content {
-            transform: translateY(0);
-        }
+  /* גרפים */
+  canvas {
+    background: #fff;
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    margin-bottom: 25px;
+    padding: 15px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e2e8f0;
+  }
 
-        /* Controls styling (buttons, inputs, selects) */
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        .controls button, .controls input, .controls select {
-            border: none;
-            border-radius: 12px;
-            padding: 10px 15px;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2); /* Soft shadow for controls */
-        }
-        .controls button {
-            background: #4f46e5; /* Indigo-600 */
-            color: #fff;
-            cursor: pointer;
-        }
-        .controls button:hover {
-            background: #6d5ff5; /* Lighter indigo */
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        .controls input, .controls select {
-            background: rgba(255,255,255,0.15);
-            color: #fff;
-        }
-        .controls input::placeholder {
-            color: rgba(255,255,255,0.6);
-        }
-        /* Specific styling for KPI metrics */
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .metric {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(12px);
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            color: #fff; /* White text for metrics */
-        }
-        .metric:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-        .metric span {
-            display: block;
-            margin-top: 10px;
-            font-size: 20px;
-            font-weight: 700;
-        }
+  /* טבלה */
+  .table-wrapper {
+    overflow-x: auto; /* מאפשר גלילה אופקית במידת הצורך */
+    margin-bottom: 30px;
+    width: 100%;
+    max-width: 1200px;
+    border-radius: 20px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  }
+  table {
+    width: 100%; /* הטבלה תמיד תמלא את רוחב ההורה שלה */
+    border-collapse: separate; /* מאפשר border-radius על tr */
+    border-spacing: 0;
+    /* min-width: 1000px; -- הוסר כדי לאפשר לטבלה להצטמצם במסכים קטנים */
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden; /* חיוני ל-border-radius */
+  }
+  th, td {
+    padding: 15px 12px;
+    text-align: center;
+    transition: background 0.3s ease;
+    border-bottom: 1px solid #f0f0f0; /* קו הפרדה דק */
+    color: #333;
+    white-space: nowrap; /* מונע שבירת שורות בתאים כדי לשמור על קריאות */
+  }
+  th {
+    background: #e9d5ff; /* סגול בהיר מאוד לכותרות עמודות */
+    font-weight: 600;
+    color: #5b21b6; /* סגול כהה יותר */
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  tr:nth-child(even) {
+    background: #f8fafc; /* רקע פסים לטבלה */
+  }
+  tr:hover td {
+    background: #eef7ff; /* כחול בהיר במעבר עכבר */
+  }
 
-        /* Chart styling */
-        canvas {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(12px);
-            border-radius: 15px;
-            margin-bottom: 20px;
-            padding: 10px; /* Padding for charts inside cards */
-        }
+  button.edit-btn {
+    background: #f97316;
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+  }
+  button.edit-btn:hover {
+    transform: scale(1.08);
+    background: #fb923c;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+  }
 
-        /* Table styling */
-        .table-wrapper {
-            overflow-x: auto; /* Enable horizontal scroll on small screens for wide tables */
-            margin-bottom: 30px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 900px; /* Minimum width to maintain readability on smaller screens */
-            background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-            overflow: hidden; /* For border-radius to apply to content */
-            backdrop-filter: blur(12px);
-            animation: fadeIn 0.6s ease; /* Animation for table entry */
-            color: #fff; /* White text for table content */
-        }
-        th, td {
-            padding: 12px 10px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.2); /* Subtle borders */
-            transition: background 0.3s ease;
-        }
-        th {
-            background: rgba(255,255,255,0.2);
-            font-weight: 500;
-        }
-        tr:hover td {
-            background: rgba(255,255,255,0.1); /* Hover effect for rows */
-        }
+  /* Popup */
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6); /* רקע כהה יותר */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+  }
+  .popup {
+    background: #fff;
+    backdrop-filter: blur(20px);
+    padding: 30px;
+    border-radius: 25px;
+    width: 90%;
+    max-width: 550px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    border: 1px solid #e2e8f0;
+    animation: slideIn 0.4s ease-out;
+  }
+  .popup h2 {
+    color: #4f46e5;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+  .popup label {
+    display: block;
+    margin: 12px 0 6px;
+    font-weight: 500;
+    color: #555;
+  }
+  .popup input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    background: #f8fafc;
+    color: #333;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .popup input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+  }
+  .popup button {
+    margin-top: 25px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    background: #7c3aed;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .popup button:hover {
+    background: #8b5cf6;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+  }
+  .popup .close {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    cursor: pointer;
+    font-size: 28px;
+    font-weight: 300;
+    color: #666;
+    transition: color 0.3s ease;
+  }
+  .popup .close:hover {
+    color: #e04c4c;
+  }
 
-        /* Action buttons in table */
-        button.edit-btn, button.delete-btn {
-            border: none;
-            border-radius: 8px;
-            padding: 6px 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-weight: 500;
-        }
-        button.edit-btn {
-            background: #f97316; /* Orange-500 */
-            color: #fff;
-        }
-        button.edit-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            background: #ea580c; /* Darker orange */
-        }
-        button.delete-btn {
-            background: #dc2626; /* Red-600 */
-            color: #fff;
-            margin-right: 8px; /* Spacing between buttons */
-        }
-        button.delete-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            background: #b91c1c; /* Darker red */
-        }
+  /* אנימציות */
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  @keyframes slideIn { from{transform:translateY(-50px); opacity:0;} to{transform:translateY(0); opacity:1;} }
 
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px);}
-            to { opacity: 1; transform: translateY(0);}
-        }
+  /* רספונסיביות */
+  @media(max-width: 1024px) {
+    .controls {
+      flex-direction: column;
+      align-items: center;
+    }
+    .controls button, .controls input, .controls select {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .metrics {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    h1 { font-size: 2rem; }
+    .metric span { font-size: 1.8rem; }
+  }
 
-        /* General safeguard for images and videos to prevent overflow */
-        img, video {
-            max-width: 100%;
-            height: auto;
-        }
+  @media(max-width: 600px){
+    body { padding: 10px; }
+    h1 { font-size: 1.8rem; margin-bottom: 20px; }
+    .metrics { grid-template-columns: 1fr; }
+    .metric { padding: 20px; }
+    .table-wrapper { border-radius: 15px; }
+    /* table { min-width: unset; } -- כבר לא נחוץ כי הסרנו את min-width הכללי מהטבלה */
+    th, td { padding: 10px 8px; font-size: 0.9rem; }
+    .popup { padding: 20px; border-radius: 20px; }
+    .popup h2 { font-size: 1.8rem; }
+  }
 
-        /* Responsive adjustments */
-        @media(max-width: 768px){
-            .controls { flex-direction: column; }
-            .metric { padding: 15px; }
-            .modal-content {
-                width: 95%;
-                padding: 1.5rem;
-            }
-        }
-    </style>
+  /* הודעות משתמש (במקום alert) */
+  #messageBox {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #333;
+    color: #fff;
+    padding: 15px 30px;
+    border-radius: 10px;
+    z-index: 1001;
+    font-size: 1.1rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+</style>
 </head>
-<body class="bg-gray-100 text-gray-800">
-    <div class="max-w-7xl mx-auto p-4 md:p-8">
-        <!-- Header -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md container-card">
-            <h1 class="text-3xl font-bold text-blue-700 mb-4 md:mb-0">לוח בקרה לניהול מכולות</h1>
-            <div class="flex flex-wrap gap-3">
-                <button id="newOrderBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200" aria-label="הזמנה חדשה">
-                    + הזמנה חדשה
-                </button>
-                <button id="refreshBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200" aria-label="רענן נתונים">
-                    רענן
-                </button>
-            </div>
-        </header>
+<body>
 
-        <!-- Search and Filter Section -->
-        <div class="container-card mb-6">
-            <h2 class="text-xl font-semibold mb-4 text-white">חיפוש וסינון</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label for="searchQuery" class="block text-white text-sm font-bold mb-2">חיפוש חופשי (לקוח/סוכן/תעודה)</label>
-                    <input type="text" id="searchQuery" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-white leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white bg-opacity-10 placeholder-white-500" placeholder="הקלד לחיפוש...">
-                </div>
-                <div>
-                    <label for="actionTypeFilter" class="block text-white text-sm font-bold mb-2">סינון לפי סוג פעולה</label>
-                    <select id="actionTypeFilter" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-white leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white bg-opacity-10">
-                        <option value="" class="text-gray-800">כל סוגי הפעולה</option>
-                        <option value="הורדה" class="text-gray-800">הורדה</option>
-                        <option value="החלפה" class="text-gray-800">החלפה</option>
-                        <option value="איסוף" class="text-gray-800">איסוף</option>
-                        <option value="אחר" class="text-gray-800">אחר</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="maxOpenDaysFilter" class="block text-white text-sm font-bold mb-2">ימים שעברו (מקסימום)</label>
-                    <input type="number" id="maxOpenDaysFilter" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-white leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white bg-opacity-10 placeholder-white-500" placeholder="לדוגמה: 10">
-                </div>
-            </div>
-        </div>
+<div id="messageBox"></div>
 
-        <!-- KPI Cards Section -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="metric">
-                <p class="text-sm text-white-300 mb-1">סה"כ פתוחות (הורדה/החלפה)</p>
-                <span id="kpiTotalOpen" class="text-3xl font-bold text-blue-300">0</span>
-            </div>
-            <div class="metric">
-                <p class="text-sm text-white-300 mb-1">חריגות (> 10 ימים)</p>
-                <span id="kpiOverdue" class="text-3xl font-bold text-red-300">0</span>
-            </div>
-            <div class="metric">
-                <p class="text-sm text-white-300 mb-1">פעולות איסוף היום</p>
-                <span id="kpiCollectedToday" class="text-3xl font-bold text-green-300">0</span>
-            </div>
-            <div class="metric">
-                <p class="text-sm text-white-300 mb-1">ממוצע ימים שעברו (לפתוחות)</p>
-                <span id="kpiAvgOpenDays" class="text-3xl font-bold text-purple-300">0.0</span>
-            </div>
-        </div>
+<h1><span class="text-indigo-600">לוח בקרה</span> <span class="text-purple-600">לניהול מכולות</span></h1>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div class="container-card">
-                <h2 class="text-xl font-semibold mb-4 text-white">התפלגות סוגי פעולה</h2>
-                <canvas id="statusChart"></canvas>
-            </div>
-            <div class="container-card">
-                <h2 class="text-xl font-semibold mb-4 text-white">היסטוגרמת ימים שעברו</h2>
-                <canvas id="openDaysChart"></canvas>
-            </div>
-        </div>
+<!-- Controls -->
+<div class="controls flex flex-wrap gap-4 justify-center mb-6 w-full max-w-4xl">
+  <button id="newOrderBtn" class="flex-grow">➕ הזמנה חדשה</button>
+  <button id="refreshBtn" class="flex-grow">🔄 רענן נתונים</button>
+  <input type="text" id="searchInput" placeholder="הקלד לחיפוש..." class="flex-grow min-w-[200px]">
+  <select id="actionFilter" class="flex-grow min-w-[150px]"></select>
+  <input type="number" id="daysMax" placeholder="ימים שעברו (מקסימום)" class="flex-grow min-w-[180px]">
+</div>
 
-        <!-- Orders Table Section -->
-        <div class="container-card overflow-x-auto">
-            <h2 class="text-xl font-semibold mb-4 text-white">הזמנות קיימות</h2>
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50 bg-opacity-20">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">תעודה</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">שם לקוח</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">שם סוכן</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">מתאריך</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">סוג פעולה</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">ימים שעברו</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">מס" מכולה ירדה</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">מס" מכולה עלתה</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">ימים שעברו (עלתה)</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">פעולות</th>
-                    </tr>
-                </thead>
-                <tbody id="ordersTableBody" class="bg-white bg-opacity-5 divide-y divide-gray-200 divide-opacity-20">
-                    <!-- Data will be loaded here -->
-                    <tr>
-                        <td colspan="10" class="px-6 py-4 whitespace-nowrap text-center text-sm text-white">
-                            טוען נתונים...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+<!-- Metrics -->
+<div class="metrics grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 w-full max-w-4xl">
+  <div class="metric">סה"כ פתוחות: <span id="totalOpen">0</span></div>
+  <div class="metric">חריגות (&gt; 10 ימים): <span id="overdue">0</span></div>
+  <div class="metric">פעולות איסוף היום: <span id="todayActions">0</span></div>
+  <div class="metric">ממוצע ימים שעברו: <span id="avgDays">0.0</span></div>
+</div>
 
-    <!-- Modal for Add/Edit Order -->
-    <div id="orderModalOverlay" class="modal-overlay">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modalTitle" class="text-2xl font-bold text-gray-800">הזמנה חדשה</h3>
-                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl font-bold" aria-label="סגור חלון">
-                    &times;
-                </button>
-            </div>
-            <form id="orderForm">
-                <input type="hidden" id="orderDocumentId"> <!-- Changed from orderId to avoid confusion with sheet's 'תעודה' -->
-                <div class="mb-4">
-                    <label for="documentId" class="block text-gray-700 text-sm font-bold mb-2">תעודה (מזהה ייחודי)</label>
-                    <input type="text" id="documentId" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label for="customerName" class="block text-gray-700 text-sm font-bold mb-2">שם לקוח <span class="text-red-500">*</span></label>
-                    <input type="text" id="customerName" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                </div>
-                <div class="mb-4">
-                    <label for="agentName" class="block text-gray-700 text-sm font-bold mb-2">שם סוכן</label>
-                    <input type="text" id="agentName" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label for="startDate" class="block text-gray-700 text-sm font-bold mb-2">מתאריך <span class="text-red-500">*</span></label>
-                    <input type="date" id="startDate" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                </div>
-                <div class="mb-4">
-                    <label for="actionType" class="block text-gray-700 text-sm font-bold mb-2">סוג פעולה</label>
-                    <select id="actionType" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="הורדה">הורדה</option>
-                        <option value="החלפה">החלפה</option>
-                        <option value="איסוף">איסוף</option>
-                        <option value="אחר">אחר</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label for="containerDown" class="block text-gray-700 text-sm font-bold mb-2">מס" מכולה ירדה</label>
-                    <input type="text" id="containerDown" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label for="containerUp" class="block text-gray-700 text-sm font-bold mb-2">מס" מכולה עלתה</label>
-                    <input type="text" id="containerUp" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-6">
-                    <label for="daysPassedUp" class="block text-gray-700 text-sm font-bold mb-2">ימים שעברו (עלתה)</label>
-                    <input type="number" id="daysPassedUp" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="flex items-center justify-between">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200">
-                        שמור הזמנה
-                    </button>
-                    <button type="button" id="cancelModalBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200">
-                        ביטול
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+<!-- Graphs -->
+<canvas id="actionChart" height="200" class="w-full max-w-4xl mb-6"></canvas>
+<canvas id="daysChart" height="200" class="w-full max-w-4xl mb-6"></canvas>
 
-    <!-- Toast Notifications Container -->
-    <div id="toastContainer" class="toast-container"></div>
+<!-- Table -->
+<div class="table-wrapper">
+  <table id="ordersTable">
+    <thead>
+      <tr>
+        <th>תעודה</th>
+        <th>שם לקוח</th>
+        <th>שם סוכן</th>
+        <th>מתאריך</th>
+        <th>סוג פעולה</th>
+        <th>ימים שעברו</th>
+        <th>מס" מכולה ירדה</th>
+        <th>מס" מכולה עלתה</th>
+        <th>ימים שעברו (עלתה)</th>
+        <th>פעולות</th>
+      </tr>
+    </thead>
+    <tbody><tr><td colspan="10">לא נמצאו הזמנות תואמות.</td></tr></tbody>
+  </table>
+</div>
 
-    <script>
-        // API Base URL - REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
-        const API_BASE = "https://script.google.com/macros/s/AKfycbx7E0OrpJc7Yq4xhFTj376xVMo9VfvhLAjDZ6zdt8QGzXvlzKkANZxn4cV5AfvDPQ0m/exec"; // Example: https://script.google.com/macros/s/AKfycbz_YOUR_SCRIPT_ID/exec
-        const API_TOKEN = ""; // Optional: Set a token if you enabled security in Code.gs
+<!-- Popup -->
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup" id="popup">
+    <span class="close" onclick="closePopup()">×</span>
+    <h2>עריכת פרטי הזמנה</h2>
+    <div id="popupFields"></div>
+    <button onclick="savePopup()">שמור שינויים</button>
+  </div>
+</div>
 
-        let allContainersData = []; // Stores the raw data from the server
-        let filteredContainersData = []; // Stores data after applying filters
+<script>
+  // URL לסקריפט של Google Apps Script
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7E0OrpJc7Yq4xhFTj376xVMo9VfvhLAjDZ6zdt8QGzXvlzKkANZxn4cV5AfvDPQ0m/exec';
+  let allOrders = [];
+  let currentEdit = null;
+  let actionChartInstance = null; // משתנה לשמירת מופע הגרף
+  let daysChartInstance = null; // משתנה לשמירת מופע הגרף
 
-        // Chart instances
-        let statusDistributionChart;
-        let openDaysHistogramChart;
+  // פונקציה להצגת הודעות למשתמש (במקום alert)
+  function showMessage(message, duration = 3000) {
+    const messageBox = document.getElementById('messageBox');
+    messageBox.textContent = message;
+    messageBox.style.display = 'block';
+    setTimeout(() => {
+      messageBox.style.display = 'none';
+    }, duration);
+  }
 
-        // Define which 'סוג פעולה' values are considered 'open'
-        const OPEN_ACTION_TYPES = ['הורדה', 'החלפה'];
+  // אירועי לחיצה וקלט
+  document.getElementById('refreshBtn').addEventListener('click', fetchOrders);
+  document.getElementById('searchInput').addEventListener('input', filterOrders);
+  document.getElementById('actionFilter').addEventListener('change', filterOrders);
+  document.getElementById('daysMax').addEventListener('input', filterOrders); // הוספת האזנה גם לשדה ימים מקסימום
+  document.getElementById('newOrderBtn').addEventListener('click', newOrder);
 
-        // --- Utility Functions ---
+  // פונקציה לטעינת הזמנות מהשרת
+  async function fetchOrders() {
+    showMessage('טוען נתונים...');
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=list`);
+      const data = await res.json();
+      if (data.success) {
+        allOrders = data.data;
+        populateActionFilter();
+        updateDashboard(allOrders);
+        showMessage('הנתונים נטענו בהצלחה!', 2000);
+      } else {
+        showMessage('שגיאה בטעינת הנתונים: ' + (data.message || 'שגיאה לא ידועה'), 5000);
+      }
+    } catch (error) {
+      console.error('שגיאה ב-fetchOrders:', error);
+      showMessage('שגיאה בתקשורת עם השרת. אנא נסה שוב מאוחר יותר.', 5000);
+    }
+  }
 
-        /**
-         * Displays a toast notification.
-         * @param {string} message - The message to display.
-         * @param {'success'|'error'|'info'} type - Type of toast for styling.
-         */
-        function showToast(message, type = 'info') {
-            const toastContainer = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.classList.add('toast', type);
-            toast.textContent = message;
-            toastContainer.appendChild(toast);
+  // פונקציה למילוי פילטר הפעולות
+  function populateActionFilter() {
+    const select = document.getElementById('actionFilter');
+    // יצירת מערך ייחודי של סוגי פעולות
+    const actions = [...new Set(allOrders.map(o => o['סוג פעולה']).filter(a => a))];
+    // מנקה את האפשרויות הקיימות ומוסיף אפשרות "כל סוגי הפעולה"
+    select.innerHTML = '<option value="">כל סוגי הפעולה</option>';
+    actions.forEach(a => {
+      const option = document.createElement('option');
+      option.value = a;
+      option.textContent = a;
+      select.appendChild(option);
+    });
+  }
 
-            // Show toast
-            setTimeout(() => {
-                toast.classList.add('show');
-            }, 100);
+  // פונקציה לסינון הזמנות
+  function filterOrders() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const actionFilter = document.getElementById('actionFilter').value;
+    const daysMaxInput = document.getElementById('daysMax').value;
+    const daysMax = daysMaxInput === '' ? Infinity : parseInt(daysMaxInput); // אם ריק, אין הגבלת ימים
 
-            // Hide and remove toast after 3 seconds
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
-            }, 3000);
-        }
+    const filtered = allOrders.filter(o => {
+      const matchesSearch = o['שם לקוח'] && o['שם לקוח'].toLowerCase().includes(searchTerm) ||
+                            o['שם סוכן'] && o['שם סוכן'].toLowerCase().includes(searchTerm) ||
+                            o['תעודה'] && o['תעודה'].toLowerCase().includes(searchTerm);
+      const matchesAction = actionFilter ? (o['סוג פעולה'] === actionFilter) : true;
+      const daysPassed = parseInt(o['ימים שעברו']) || 0; // טיפול במקרה של ערך ריק או לא מספרי
+      const matchesDays = daysPassed <= daysMax;
+      return matchesSearch && matchesAction && matchesDays;
+    });
+    updateDashboard(filtered);
+  }
 
-        /**
-         * Converts an ISO date string (yyyy-MM-dd) to a Hebrew localized string.
-         * Corrected to handle potential timezone issues by adding 'T00:00:00'
-         * @param {string} isoDateString - The date string in 'yyyy-MM-dd' format.
-         * @returns {string} The date formatted as 'DD/MM/YYYY' (e.g., '01/08/2025').
-         */
-        function formatDateToHebrew(isoDateString) {
-            if (!isoDateString) return '';
-            try {
-                // Append 'T00:00:00' to ensure the date is parsed as UTC midnight
-                // to prevent timezone offsets from shifting the date to previous day.
-                const date = new Date(isoDateString + 'T00:00:00'); 
-                // Ensure the date is valid before formatting
-                if (isNaN(date.getTime())) {
-                    console.warn('Invalid date string for formatting:', isoDateString);
-                    return isoDateString; // Return original if invalid
-                }
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-                const year = date.getFullYear();
-                return `${day}/${month}/${year}`;
-            } catch (error) {
-                console.error("Error formatting date:", error);
-                return isoDateString; // Fallback
+  // פונקציה לעדכון לוח הבקרה (טבלה, מדדים, גרפים)
+  function updateDashboard(orders) {
+    const tbody = document.querySelector('#ordersTable tbody');
+    tbody.innerHTML = ''; // מנקה את הטבלה
+    if (orders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="text-gray-500 py-4">לא נמצאו הזמנות תואמות.</td></tr>';
+    } else {
+      orders.forEach(o => {
+        const tr = document.createElement('tr');
+        // שימוש בתנאי עבור o['תעודה'] וכו' כדי למנוע הצגת 'undefined'
+        tr.innerHTML = `
+          <td>${o['תעודה'] || ''}</td>
+          <td>${o['שם לקוח'] || ''}</td>
+          <td>${o['שם סוכן'] || ''}</td>
+          <td>${formatDate(o['מתאריך'])}</td>
+          <td>${o['סוג פעולה'] || ''}</td>
+          <td>${o['ימים שעברו'] || '0'}</td>
+          <td>${o['מס" מכולה ירדה'] || ''}</td>
+          <td>${o['מס" מכולה עלתה'] || ''}</td>
+          <td>${o['ימים שעברו (עלתה)'] || '0'}</td>
+          <td><button class="edit-btn" onclick="openPopup(${allOrders.indexOf(o)})">ערוך</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // עדכון מדדים
+    const totalOpen = orders.length;
+    const overdue = orders.filter(o => (parseInt(o['ימים שעברו']) || 0) > 10).length;
+    // יש לוודא שהתאריך של היום תואם את פורמט הנתונים
+    const today = orders.filter(o => o['סוג פעולה'] === 'איסוף' && formatDate(o['מתאריך']) === new Date().toLocaleDateString('he-IL')).length;
+    const sumDays = orders.reduce((sum, o) => sum + (parseInt(o['ימים שעברו']) || 0), 0);
+    const avgDays = orders.length ? (sumDays / orders.length).toFixed(1) : '0.0';
+
+    document.getElementById('totalOpen').textContent = totalOpen;
+    document.getElementById('overdue').textContent = overdue;
+    document.getElementById('todayActions').textContent = today;
+    document.getElementById('avgDays').textContent = avgDays;
+
+    renderActionChart(orders);
+    renderDaysChart(orders);
+  }
+
+  // פונקציה לעיצוב תאריך
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d)) {
+        // אם Date() לא הצליח לפרסר, ננסה פרסור ידני לפורמט dd/mm/yyyy
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // חודשים ב-JavaScript הם 0-11
+            const year = parseInt(parts[2]);
+            const dParsed = new Date(year, month, day);
+            if (!isNaN(dParsed)) {
+                return `${String(dParsed.getDate()).padStart(2, '0')}/${String(dParsed.getMonth() + 1).padStart(2, '0')}/${dParsed.getFullYear()}`;
             }
         }
+        return dateStr; // מחזיר את המקור אם לא ניתן לפרסר
+      }
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    } catch (e) {
+      console.error("שגיאה בפורמט התאריך:", dateStr, e);
+      return dateStr; // במקרה של שגיאה, מחזיר את המחרוזת המקורית
+    }
+  }
 
-        /**
-         * Returns the number of 'ימים שעברו' from the container object.
-         * @param {Object} container - The container object.
-         * @returns {number} The number of days passed, or 0 if not available/invalid.
-         */
-        function getDaysPassed(container) {
-            const days = parseInt(container['ימים שעברו']);
-            return isNaN(days) ? 0 : days;
-        }
-        
-        /**
-         * Returns the number of 'ימים שעברו (עלתה)' from the container object.
-         * @param {Object} container - The container object.
-         * @returns {number} The number of days passed up, or 0 if not available/invalid.
-         */
-        function getDaysPassedUp(container) {
-            const days = parseInt(container['ימים שעברו (עלתה)']);
-            return isNaN(days) ? 0 : days;
-        }
 
-        /**
-         * Calculates KPIs and updates the UI.
-         */
-        function renderKPIs() {
-            const totalOpen = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה'])).length;
-            
-            const overdue = filteredContainersData.filter(c => 
-                OPEN_ACTION_TYPES.includes(c['סוג פעולה']) && getDaysPassed(c) > 10
-            ).length;
-            
-            // Assuming 'איסוף' type with 'ימים שעברו (עלתה)' close to 0 indicates collection today
-            const collectedToday = filteredContainersData.filter(c => {
-                return c['סוג פעולה'] === 'איסוף' && getDaysPassedUp(c) <= 1; // Collected today or yesterday (recently)
-            }).length;
+  // פונקציה לרינדור גרף התפלגות סוגי פעולה
+  function renderActionChart(orders) {
+    const ctx = document.getElementById('actionChart').getContext('2d');
+    const counts = {};
+    orders.forEach(o => {
+      counts[o['סוג פעולה'] || 'לא מוגדר'] = (counts[o['סוג פעולה'] || 'לא מוגדר'] || 0) + 1;
+    });
 
-            const openContainers = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה']));
-            const totalOpenDays = openContainers.length > 0 ? openContainers.reduce((sum, c) => sum + getDaysPassed(c), 0) : 0;
-            const avgOpenDays = openContainers.length > 0 ? (totalOpenDays / openContainers.length).toFixed(1) : '0.0';
+    if (actionChartInstance) {
+      actionChartInstance.destroy(); // הורס את המופע הקודם של הגרף
+    }
 
-            document.getElementById('kpiTotalOpen').textContent = totalOpen;
-            document.getElementById('kpiOverdue').textContent = overdue;
-            document.getElementById('kpiCollectedToday').textContent = collectedToday;
-            document.getElementById('kpiAvgOpenDays').textContent = avgOpenDays;
-
-            if (overdue > 0) {
-                showToast(`קיימות ${overdue} מכולות חריגות (> 10 ימים) הדורשות טיפול דחוף!`, 'error');
+    actionChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(counts),
+        datasets: [{
+          label: 'התפלגות סוגי פעולה',
+          data: Object.values(counts),
+          backgroundColor: 'rgba(124, 58, 237, 0.7)', // סגול
+          borderColor: 'rgba(124, 58, 237, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: '#333'
             }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#555' },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          },
+          x: {
+            ticks: { color: '#555' },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          }
         }
+      }
+    });
+  }
 
-        /**
-         * Renders the Chart.js charts.
-         */
-        function renderCharts() {
-            // Action Type Distribution Chart (Donut)
-            const actionTypeCounts = filteredContainersData.reduce((acc, c) => {
-                acc[c['סוג פעולה']] = (acc[c['סוג פעולה']] || 0) + 1;
-                return acc;
-            }, {});
+  // פונקציה לרינדור גרף היסטוגרמת ימים שעברו
+  function renderDaysChart(orders) {
+    const ctx = document.getElementById('daysChart').getContext('2d');
+    // חשוב לוודא שערכים הם מספרים
+    const days = orders.map(o => parseInt(o['ימים שעברו']) || 0).sort((a, b) => a - b);
 
-            const actionTypeLabels = Object.keys(actionTypeCounts);
-            const actionTypeData = Object.values(actionTypeCounts);
-            const actionTypeColors = [
-                'rgba(59, 130, 246, 0.7)', // Blue - הורדה
-                'rgba(16, 185, 129, 0.7)', // Green - החלפה
-                'rgba(245, 158, 11, 0.7)', // Yellow - איסוף
-                'rgba(239, 68, 68, 0.7)',  // Red - אחר
-                'rgba(107, 114, 128, 0.7)' // Gray - fallback
-            ];
+    if (daysChartInstance) {
+      daysChartInstance.destroy(); // הורס את המופע הקודם של הגרף
+    }
 
-            if (statusDistributionChart) {
-                statusDistributionChart.destroy();
+    // יצירת תוויות דינמיות עבור ציר X (כמו טווחים או ימים ספציפיים)
+    const uniqueDays = [...new Set(days)].sort((a,b) => a-b);
+
+    daysChartInstance = new Chart(ctx, {
+      type: 'line', // שינוי לגרף קו להצגת מגמה
+      data: {
+        labels: uniqueDays, // תווית ציר X
+        datasets: [{
+          label: 'היסטוגרמת ימים שעברו',
+          data: uniqueDays.map(day => days.filter(d => d === day).length), // ספירת מופעים לכל יום
+          backgroundColor: 'rgba(249, 115, 22, 0.7)', // כתום
+          borderColor: 'rgba(249, 115, 22, 1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4 // עושה את הקו חלק יותר
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: '#333'
             }
-            const ctxStatus = document.getElementById('statusChart').getContext('2d');
-            statusDistributionChart = new Chart(ctxStatus, {
-                type: 'doughnut',
-                data: {
-                    labels: actionTypeLabels,
-                    datasets: [{
-                        data: actionTypeData,
-                        backgroundColor: actionTypeColors.slice(0, actionTypeLabels.length),
-                        borderColor: 'rgba(255,255,255,0.8)',
-                        borderWidth: 1,
-                        hoverOffset: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: 'white', // White label text
-                                font: {
-                                    family: 'Rubik'
-                                }
-                            }
-                        },
-                        title: {
-                            display: false
-                        }
-                    }
-                }
-            });
-
-            // Days Passed Histogram Chart (Bar) for 'open' containers
-            const openContainers = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה']));
-            const daysPassed = openContainers.map(c => getDaysPassed(c));
-
-            // Create bins for histogram (e.g., 0-5, 6-10, 11-15, >15)
-            const bins = {
-                '0-5 ימים': 0,
-                '6-10 ימים': 0,
-                '11-15 ימים': 0,
-                '16-20 ימים': 0,
-                'מעל 20 ימים': 0
-            };
-            daysPassed.forEach(days => {
-                if (days >= 0 && days <= 5) bins['0-5 ימים']++;
-                else if (days >= 6 && days <= 10) bins['6-10 ימים']++;
-                else if (days >= 11 && days <= 15) bins['11-15 ימים']++;
-                else if (days >= 16 && days <= 20) bins['16-20 ימים']++;
-                else if (days > 20) bins['מעל 20 ימים']++;
-            });
-
-            const histogramLabels = Object.keys(bins);
-            const histogramData = Object.values(bins);
-            const histogramColors = [
-                'rgba(34, 197, 94, 0.7)',  // Green (0-5)
-                'rgba(59, 130, 246, 0.7)', // Blue (6-10)
-                'rgba(245, 158, 11, 0.7)', // Yellow (11-15)
-                'rgba(239, 68, 68, 0.7)',  // Red (16-20)
-                'rgba(185, 28, 28, 0.7)'   // Dark Red (>20)
-            ];
-
-            if (openDaysHistogramChart) {
-                openDaysHistogramChart.destroy();
-            }
-            const ctxOpenDays = document.getElementById('openDaysChart').getContext('2d');
-            openDaysHistogramChart = new Chart(ctxOpenDays, {
-                type: 'bar',
-                data: {
-                    labels: histogramLabels,
-                    datasets: [{
-                        label: 'מספר מכולות',
-                        data: histogramData,
-                        backgroundColor: histogramColors,
-                        borderColor: 'rgba(255,255,255,0.8)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        title: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0,
-                                color: 'white', // White tick labels
-                                font: {
-                                    family: 'Rubik'
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(255,255,255,0.1)' // Lighter grid lines
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                color: 'white', // White tick labels
-                                font: {
-                                    family: 'Rubik'
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(255,255,255,0.1)' // Lighter grid lines
-                            }
-                        }
-                    }
-                }
-            });
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#555' },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          },
+          x: {
+            ticks: { color: '#555' },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          }
         }
+      }
+    });
+  }
 
+  // פונקציה לניקוי מפתח משדות טופס (ללא תווי פיסוק)
+  function sanitizeKey(key) {
+    return key.replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, "_"); // תומך בעברית
+  }
 
-        /**
-         * Renders the table with container data.
-         * @param {Array<Object>} data - The array of container objects to display.
-         */
-        function renderTable(data) {
-            const tableBody = document.getElementById('ordersTableBody');
-            tableBody.innerHTML = ''; // Clear existing rows
+  // פונקציה לפתיחת חלון קופץ לעריכה
+  function openPopup(index) {
+    currentEdit = index;
+    const order = allOrders[index];
+    const container = document.getElementById('popupFields');
+    container.innerHTML = ''; // מנקה שדות קיימים
+    for (const key in order) {
+      const safeKey = sanitizeKey(key);
+      // שימוש בטקסט אריאה לשדות ארוכים יותר, או סלקט לשדות עם אפשרויות קבועות
+      let inputField;
+      if (key === 'סוג פעולה') {
+        inputField = `<select id="popup_${safeKey}" class="w-full p-2 border rounded">
+                        <option value="איסוף" ${order[key] === 'איסוף' ? 'selected' : ''}>איסוף</option>
+                        <option value="החזרה" ${order[key] === 'החזרה' ? 'selected' : ''}>החזרה</option>
+                        <option value="הובלה" ${order[key] === 'הובלה' ? 'selected' : ''}>הובלה</option>
+                        <option value="ריקון" ${order[key] === 'ריקון' ? 'selected' : ''}>ריקון</option>
+                        <option value="אחר" ${order[key] === 'אחר' ? 'selected' : ''}>אחר</option>
+                      </select>`;
+      } else {
+        inputField = `<input type="text" id="popup_${safeKey}" value="${order[key] || ''}">`;
+      }
+      container.innerHTML += `<label>${key}</label>${inputField}`;
+    }
+    document.getElementById('popupOverlay').style.display = 'flex';
+  }
 
-            if (data.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="px-6 py-4 whitespace-nowrap text-center text-sm text-white">
-                            לא נמצאו הזמנות תואמות.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
+  // פונקציה לסגירת חלון קופץ
+  function closePopup() {
+    document.getElementById('popupOverlay').style.display = 'none';
+  }
 
-            data.forEach(container => {
-                const daysPassed = getDaysPassed(container);
-                const isOverdue = OPEN_ACTION_TYPES.includes(container['סוג פעולה']) && daysPassed > 10;
-                // Approaching overdue: between 8 and 10 days, and it's an open type
-                const isApproachingOverdue = OPEN_ACTION_TYPES.includes(container['סוג פעולה']) && daysPassed >= 8 && daysPassed <= 10;
+  // פונקציה לשמירת שינויים בחלון קופץ
+  async function savePopup() {
+    if (currentEdit === null) return;
+    const order = allOrders[currentEdit];
+    const updatedOrder = {};
 
-                let rowClass = 'hover:bg-white hover:bg-opacity-10'; // Default hover
-                if (isOverdue) {
-                    rowClass = 'overdue-row';
-                } else if (isApproachingOverdue) {
-                    rowClass = 'approaching-overdue-row';
-                }
+    for (const key in order) {
+      const safeKey = sanitizeKey(key);
+      const el = document.getElementById(`popup_${safeKey}`);
+      if (el) {
+        updatedOrder[key] = el.value;
+      }
+    }
 
-                const row = document.createElement('tr');
-                row.classList.add(rowClass);
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${container['תעודה'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">${container['שם לקוח'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">${container['שם סוכן'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">${formatDateToHebrew(container['מתאריך'])}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">${container['סוג פעולה'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${isOverdue ? 'font-bold' : ''}">${daysPassed}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">${container['מס" מכולה ירדה'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">${container['מס" מכולה עלתה'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">${getDaysPassedUp(container)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                        <button class="edit-btn" data-id="${container['תעודה']}" aria-label="ערוך הזמנה">ערוך</button>
-                        <button class="delete-btn" data-id="${container['תעודה']}" aria-label="מחק הזמנה">מחק</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
+    showMessage('שומר שינויים...', 0); // הצג הודעה ללא זמן מוגבל
 
-            // Add event listeners for edit/delete buttons
-            tableBody.querySelectorAll('.edit-btn').forEach(button => {
-                button.addEventListener('click', (event) => {
-                    const id = event.target.dataset.id;
-                    const container = allContainersData.find(c => c['תעודה'] === id);
-                    if (container) {
-                        showModal('edit', container);
-                    } else {
-                        showToast('הזמנה לא נמצאה לעריכה.', 'error');
-                    }
-                });
-            });
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=update&index=${currentEdit}`, {
+        method: 'POST',
+        body: JSON.stringify(updatedOrder),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await res.json();
+      if (result.success) {
+        // עדכון אובייקט allOrders באופן מקומי עם הנתונים המעודכנים
+        allOrders[currentEdit] = updatedOrder;
+        updateDashboard(allOrders); // רענן את לוח הבקרה עם הנתונים המעודכנים
+        closePopup();
+        showMessage('ההזמנה עודכנה בהצלחה!', 2000);
+      } else {
+        showMessage('שגיאה בעדכון ההזמנה: ' + (result.message || 'שגיאה לא ידועה'), 5000);
+      }
+    } catch (error) {
+      console.error('שגיאה ב-savePopup:', error);
+      showMessage('שגיאה בתקשורת עם השרת בעת שמירה. אנא נסה שוב.', 5000);
+    }
+  }
 
-            tableBody.querySelectorAll('.delete-btn').forEach(button => {
-                button.addEventListener('click', async (event) => {
-                    const id = event.target.dataset.id;
-                    // Use a simple confirm dialog for now, or implement a custom modal
-                    if (confirm(`האם אתה בטוח שברצונך למחוק את הזמנה ID: ${id}?`)) {
-                        await apiDelete(id);
-                    }
-                });
-            });
-        }
+  // פונקציה ליצירת הזמנה חדשה
+  function newOrder() {
+    const newO = {
+      'תעודה': '',
+      'שם לקוח': '',
+      'שם סוכן': '',
+      'מתאריך': '',
+      'סוג פעולה': '',
+      'ימים שעברו': '0',
+      'מס" מכולה ירדה': '',
+      'מס" מכולה עלתה': '',
+      'ימים שעברו (עלתה)': '0'
+    };
+    allOrders.push(newO); // הוסף את ההזמנה החדשה למערך
+    openPopup(allOrders.length - 1); // פתח את הפופאפ עבור ההזמנה החדשה
+  }
 
-        /**
-         * Applies filters to the allContainersData and updates the UI.
-         */
-        function applyFilters() {
-            const query = document.getElementById('searchQuery').value.toLowerCase();
-            const actionType = document.getElementById('actionTypeFilter').value;
-            const maxDaysPassed = parseInt(document.getElementById('maxOpenDaysFilter').value);
+  // טעינה ראשונית של הנתונים
+  fetchOrders();
+</script>
 
-            filteredContainersData = allContainersData.filter(container => {
-                // Free text search
-                const matchesSearch = query === '' ||
-                    (container['שם לקוח'] || '').toLowerCase().includes(query) ||
-                    (container['שם סוכן'] || '').toLowerCase().includes(query) ||
-                    (container['תעודה'] || '').toLowerCase().includes(query);
-
-                // Action Type filter
-                const matchesActionType = actionType === '' || container['סוג פעולה'] === actionType;
-
-                // Max days passed filter (applies to 'open' containers based on 'ימים שעברו')
-                const daysPassed = getDaysPassed(container);
-                const matchesMaxDaysPassed = isNaN(maxDaysPassed) || daysPassed <= maxDaysPassed;
-
-                return matchesSearch && matchesActionType && matchesMaxDaysPassed;
-            });
-
-            renderKPIs();
-            renderCharts();
-            renderTable(filteredContainersData);
-        }
-
-        // --- API Functions ---
-
-        /**
-         * Fetches data from the Apps Script Web App.
-         * @returns {Promise<Array<Object>>} A promise that resolves to an array of container objects.
-         */
-        async function apiList() {
-            showToast('טוען נתונים...', 'info');
-            try {
-                const url = new URL(API_BASE);
-                url.searchParams.append('action', 'list');
-                if (API_TOKEN) {
-                    url.searchParams.append('token', API_TOKEN);
-                }
-
-                const response = await fetch(url.toString(), {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('נתונים נטענו בהצלחה!', 'success');
-                    return result.data;
-                } else {
-                    showToast(`שגיאה בטעינת נתונים: ${result.message}`, 'error');
-                    return [];
-                }
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
-                return [];
-            }
-        }
-
-        /**
-         * Adds a new container record.
-         * @param {Object} data - The container data.
-         * @returns {Promise<boolean>} True if successful, false otherwise.
-         */
-        async function apiAdd(data) {
-            showToast('מוסיף הזמנה חדשה...', 'info');
-            try {
-                const body = new URLSearchParams();
-                body.append('action', 'add');
-                body.append('data', JSON.stringify(data));
-                if (API_TOKEN) {
-                    body.append('token', API_TOKEN);
-                }
-
-                const response = await fetch(API_BASE, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: body.toString(),
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('הזמנה נוספה בהצלחה!', 'success');
-                    return true;
-                } else {
-                    showToast(`שגיאה בהוספת הזמנה: ${result.message}`, 'error');
-                    return false;
-                }
-            } catch (error) {
-                console.error("Error adding data:", error);
-                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        /**
-         * Updates an existing container record.
-         * @param {Object} data - The container data including תעודה.
-         * @returns {Promise<boolean>} True if successful, false otherwise.
-         */
-        async function apiUpdate(data) {
-            showToast('מעדכן הזמנה...', 'info');
-            try {
-                const body = new URLSearchParams();
-                body.append('action', 'update');
-                body.append('data', JSON.stringify(data));
-                if (API_TOKEN) {
-                    body.append('token', API_TOKEN);
-                }
-
-                const response = await fetch(API_BASE, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: body.toString(),
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('הזמנה עודכנה בהצלחה!', 'success');
-                    return true;
-                } else {
-                    showToast(`שגיאה בעדכון הזמנה: ${result.message}`, 'error');
-                    return false;
-                }
-            } catch (error) {
-                console.error("Error updating data:", error);
-                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        /**
-         * Deletes a container record.
-         * @param {string} id - The תעודה of the container to delete.
-         * @returns {Promise<boolean>} True if successful, false otherwise.
-         */
-        async function apiDelete(id) {
-            showToast('מוחק הזמנה...', 'info');
-            try {
-                const body = new URLSearchParams();
-                body.append('action', 'delete');
-                body.append('id', id);
-                if (API_TOKEN) {
-                    body.append('token', API_TOKEN);
-                }
-
-                const response = await fetch(API_BASE, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: body.toString(),
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('הזמנה נמחקה בהצלחה!', 'success');
-                    // Refresh data after successful delete
-                    await initApp();
-                    return true;
-                } else {
-                    showToast(`שגיאה במחיקת הזמנה: ${result.message}`, 'error');
-                    return false;
-                }
-            } catch (error) {
-                console.error("Error deleting data:", error);
-                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        // --- Modal Logic ---
-
-        const orderModalOverlay = document.getElementById('orderModalOverlay');
-        const modalTitle = document.getElementById('modalTitle');
-        const orderForm = document.getElementById('orderForm');
-        const orderDocumentIdField = document.getElementById('orderDocumentId'); // Hidden field for actual document ID
-        const documentIdField = document.getElementById('documentId'); // Input field for user to see/edit 'תעודה'
-        const customerNameField = document.getElementById('customerName');
-        const agentNameField = document.getElementById('agentName');
-        const startDateField = document.getElementById('startDate');
-        const actionTypeField = document.getElementById('actionType');
-        const containerDownField = document.getElementById('containerDown');
-        const containerUpField = document.getElementById('containerUp');
-        const daysPassedUpField = document.getElementById('daysPassedUp');
-
-        /**
-         * Shows the add/edit modal and populates fields if in edit mode.
-         * @param {'add'|'edit'} mode - The mode of the modal.
-         * @param {Object} [data] - The container object if in edit mode.
-         */
-        function showModal(mode, data = {}) {
-            orderForm.reset(); // Clear form
-            orderDocumentIdField.value = ''; // Clear ID for add mode
-            documentIdField.readOnly = false; // Allow editing document ID for new entry, or disable for existing
-
-            if (mode === 'add') {
-                modalTitle.textContent = 'הזמנה חדשה';
-                actionTypeField.value = 'הורדה'; // Default action type for new
-                startDateField.valueAsDate = new Date(); // Default to today
-            } else if (mode === 'edit') {
-                modalTitle.textContent = `ערוך הזמנה: ${data['תעודה']}`;
-                orderDocumentIdField.value = data['תעודה']; // Store 'תעודה' in hidden field for API calls
-                documentIdField.value = data['תעודה'] || '';
-                documentIdField.readOnly = true; // Prevent editing document ID for existing entry
-
-                customerNameField.value = data['שם לקוח'] || '';
-                agentNameField.value = data['שם סוכן'] || '';
-                startDateField.value = data['מתאריך'] || ''; // ISO format
-                actionTypeField.value = data['סוג פעולה'] || 'הורדה';
-                containerDownField.value = data['מס" מכולה ירדה'] || '';
-                containerUpField.value = data['מס" מכולה עלתה'] || '';
-                daysPassedUpField.value = data['ימים שעברו (עלתה)'] || '';
-            }
-            orderModalOverlay.classList.add('show');
-        }
-
-        /**
-         * Closes the add/edit modal.
-         */
-        function closeModal() {
-            orderModalOverlay.classList.remove('show');
-        }
-
-        /**
-         * Handles the form submission for adding or editing a container.
-         * @param {Event} event - The form submission event.
-         */
-        async function saveContainer(event) {
-            event.preventDefault(); // Prevent default form submission
-
-            const containerData = {
-                'תעודה': documentIdField.value.trim(), // Use input field for 'תעודה'
-                'שם לקוח': customerNameField.value.trim(),
-                'שם סוכן': agentNameField.value.trim(),
-                'מתאריך': startDateField.value, // Already ISO format from type="date"
-                'סוג פעולה': actionTypeField.value,
-                'מס" מכולה ירדה': containerDownField.value.trim(),
-                'מס" מכולה עלתה': containerUpField.value.trim(),
-                'ימים שעברו (עלתה)': daysPassedUpField.value.trim()
-            };
-
-            // Basic validation
-            if (!containerData['שם לקוח'] || !containerData['מתאריך']) {
-                showToast('שדות "שם לקוח" ו"מתאריך" הם חובה.', 'error');
-                return;
-            }
-
-            const isEdit = !!orderDocumentIdField.value; // Check hidden field for existing document ID
-            let success;
-
-            if (isEdit) {
-                // For edit, ensure the 'תעודה' from the original record is used for update
-                containerData['תעודה'] = orderDocumentIdField.value;
-                success = await apiUpdate(containerData);
-            } else {
-                // For add, 'תעודה' might be empty, server will generate if needed
-                success = await apiAdd(containerData);
-            }
-
-            if (success) {
-                closeModal();
-                await initApp(); // Refresh data after save
-            }
-        }
-
-        // --- Event Listeners ---
-
-        document.getElementById('newOrderBtn').addEventListener('click', () => showModal('add'));
-        document.getElementById('refreshBtn').addEventListener('click', initApp);
-        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-        document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
-        document.getElementById('orderForm').addEventListener('submit', saveContainer);
-
-        document.getElementById('searchQuery').addEventListener('input', applyFilters);
-        document.getElementById('actionTypeFilter').addEventListener('change', applyFilters);
-        document.getElementById('maxOpenDaysFilter').addEventListener('input', applyFilters);
-
-        // Close modal when clicking outside content
-        orderModalOverlay.addEventListener('click', (event) => {
-            if (event.target === orderModalOverlay) {
-                closeModal();
-            }
-        });
-
-        // --- Initialization ---
-
-        /**
-         * Initializes the application by fetching data and rendering the UI.
-         */
-        async function initApp() {
-            allContainersData = await apiList();
-            applyFilters(); // Apply initial filters and render UI
-        }
-
-        // Run the app initialization when the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', initApp);
-
-    </script>
 </body>
 </html>
