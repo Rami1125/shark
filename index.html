@@ -112,21 +112,21 @@
             <h2 class="text-xl font-semibold mb-4">חיפוש וסינון</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label for="searchQuery" class="block text-gray-700 text-sm font-bold mb-2">חיפוש חופשי (לקוח/כתובת/טלפון)</label>
+                    <label for="searchQuery" class="block text-gray-700 text-sm font-bold mb-2">חיפוש חופשי (לקוח/סוכן/תעודה)</label>
                     <input type="text" id="searchQuery" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="הקלד לחיפוש...">
                 </div>
                 <div>
-                    <label for="statusFilter" class="block text-gray-700 text-sm font-bold mb-2">סינון לפי סטטוס</label>
-                    <select id="statusFilter" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">כל הסטטוסים</option>
-                        <option value="פתוח">פתוח</option>
-                        <option value="נאספה">נאספה</option>
-                        <option value="הוחלפה">הוחלפה</option>
-                        <option value="חריגה">חריגה</option>
+                    <label for="actionTypeFilter" class="block text-gray-700 text-sm font-bold mb-2">סינון לפי סוג פעולה</label>
+                    <select id="actionTypeFilter" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">כל סוגי הפעולה</option>
+                        <option value="הורדה">הורדה</option>
+                        <option value="החלפה">החלפה</option>
+                        <option value="איסוף">איסוף</option>
+                        <option value="אחר">אחר</option>
                     </select>
                 </div>
                 <div>
-                    <label for="maxOpenDaysFilter" class="block text-gray-700 text-sm font-bold mb-2">ימים פתוחים (מקסימום)</label>
+                    <label for="maxOpenDaysFilter" class="block text-gray-700 text-sm font-bold mb-2">ימים שעברו (מקסימום)</label>
                     <input type="number" id="maxOpenDaysFilter" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="לדוגמה: 10">
                 </div>
             </div>
@@ -135,7 +135,7 @@
         <!-- KPI Cards Section -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div class="container-card text-center">
-                <p class="text-sm text-gray-500 mb-1">סה"כ פתוחות</p>
+                <p class="text-sm text-gray-500 mb-1">סה"כ פתוחות (הורדה/החלפה)</p>
                 <p id="kpiTotalOpen" class="text-3xl font-bold text-blue-600">0</p>
             </div>
             <div class="container-card text-center">
@@ -143,11 +143,11 @@
                 <p id="kpiOverdue" class="text-3xl font-bold text-red-600">0</p>
             </div>
             <div class="container-card text-center">
-                <p class="text-sm text-gray-500 mb-1">נאספו היום</p>
+                <p class="text-sm text-gray-500 mb-1">פעולות איסוף היום</p>
                 <p id="kpiCollectedToday" class="text-3xl font-bold text-green-600">0</p>
             </div>
             <div class="container-card text-center">
-                <p class="text-sm text-gray-500 mb-1">ממוצע ימים פתוחים</p>
+                <p class="text-sm text-gray-500 mb-1">ממוצע ימים שעברו (לפתוחות)</p>
                 <p id="kpiAvgOpenDays" class="text-3xl font-bold text-purple-600">0.0</p>
             </div>
         </div>
@@ -155,11 +155,11 @@
         <!-- Charts Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div class="container-card">
-                <h2 class="text-xl font-semibold mb-4">התפלגות סטטוסים</h2>
+                <h2 class="text-xl font-semibold mb-4">התפלגות סוגי פעולה</h2>
                 <canvas id="statusChart"></canvas>
             </div>
             <div class="container-card">
-                <h2 class="text-xl font-semibold mb-4">היסטוגרמת ימים פתוחים</h2>
+                <h2 class="text-xl font-semibold mb-4">היסטוגרמת ימים שעברו</h2>
                 <canvas id="openDaysChart"></canvas>
             </div>
         </div>
@@ -170,15 +170,15 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">לקוח</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">טלפון</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">כתובת</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">גודל מכולה</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">תאריך פתיחה</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ימים פתוחים</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">סטטוס</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">הערות</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">תעודה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">שם לקוח</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">שם סוכן</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מתאריך</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">סוג פעולה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ימים שעברו</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מס" מכולה ירדה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מס" מכולה עלתה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ימים שעברו (עלתה)</th>
                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">פעולות</th>
                     </tr>
                 </thead>
@@ -204,44 +204,43 @@
                 </button>
             </div>
             <form id="orderForm">
-                <input type="hidden" id="orderId">
+                <input type="hidden" id="orderDocumentId"> <!-- Changed from orderId to avoid confusion with sheet's 'תעודה' -->
                 <div class="mb-4">
-                    <label for="clientName" class="block text-gray-700 text-sm font-bold mb-2">לקוח <span class="text-red-500">*</span></label>
-                    <input type="text" id="clientName" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <label for="documentId" class="block text-gray-700 text-sm font-bold mb-2">תעודה (מזהה ייחודי)</label>
+                    <input type="text" id="documentId" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="mb-4">
-                    <label for="phone" class="block text-gray-700 text-sm font-bold mb-2">טלפון</label>
-                    <input type="text" id="phone" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="customerName" class="block text-gray-700 text-sm font-bold mb-2">שם לקוח <span class="text-red-500">*</span></label>
+                    <input type="text" id="customerName" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
                 <div class="mb-4">
-                    <label for="address" class="block text-gray-700 text-sm font-bold mb-2">כתובת</label>
-                    <input type="text" id="address" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="agentName" class="block text-gray-700 text-sm font-bold mb-2">שם סוכן</label>
+                    <input type="text" id="agentName" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="mb-4">
-                    <label for="containerSize" class="block text-gray-700 text-sm font-bold mb-2">גודל מכולה</label>
-                    <select id="containerSize" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="8 קוב">8 קוב</option>
-                        <option value="10 קוב">10 קוב</option>
-                        <option value="12 קוב">12 קוב</option>
-                        <option value="18 קוב">18 קוב</option>
+                    <label for="startDate" class="block text-gray-700 text-sm font-bold mb-2">מתאריך <span class="text-red-500">*</span></label>
+                    <input type="date" id="startDate" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="actionType" class="block text-gray-700 text-sm font-bold mb-2">סוג פעולה</label>
+                    <select id="actionType" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="הורדה">הורדה</option>
+                        <option value="החלפה">החלפה</option>
+                        <option value="איסוף">איסוף</option>
+                        <option value="אחר">אחר</option>
                     </select>
                 </div>
                 <div class="mb-4">
-                    <label for="openDate" class="block text-gray-700 text-sm font-bold mb-2">תאריך פתיחה <span class="text-red-500">*</span></label>
-                    <input type="date" id="openDate" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <label for="containerDown" class="block text-gray-700 text-sm font-bold mb-2">מס" מכולה ירדה</label>
+                    <input type="text" id="containerDown" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="mb-4">
-                    <label for="status" class="block text-gray-700 text-sm font-bold mb-2">סטטוס</label>
-                    <select id="status" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="פתוח">פתוח</option>
-                        <option value="נאספה">נאספה</option>
-                        <option value="הוחלפה">הוחלפה</option>
-                        <option value="חריגה">חריגה</option>
-                    </select>
+                    <label for="containerUp" class="block text-gray-700 text-sm font-bold mb-2">מס" מכולה עלתה</label>
+                    <input type="text" id="containerUp" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="mb-6">
-                    <label for="notes" class="block text-gray-700 text-sm font-bold mb-2">הערות</label>
-                    <textarea id="notes" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                    <label for="daysPassedUp" class="block text-gray-700 text-sm font-bold mb-2">ימים שעברו (עלתה)</label>
+                    <input type="number" id="daysPassedUp" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex items-center justify-between">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200">
@@ -260,7 +259,7 @@
 
     <script>
         // API Base URL - REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
-        const API_BASE = "https://script.google.com/macros/s/AKfycbw_awsazVP3ic3Vkgeqz-iOWyphr5Al8m-XAqrQA2uT03sOdjTmyuJ6hjSPBEVnEZwt/exec"; // Example: https://script.google.com/macros/s/AKfycbz_YOUR_SCRIPT_ID/exec
+        const API_BASE = "PASTE_WEB_APP_URL"; // Example: https://script.google.com/macros/s/AKfycbz_YOUR_SCRIPT_ID/exec
         const API_TOKEN = ""; // Optional: Set a token if you enabled security in Code.gs
 
         let allContainersData = []; // Stores the raw data from the server
@@ -269,6 +268,9 @@
         // Chart instances
         let statusDistributionChart;
         let openDaysHistogramChart;
+
+        // Define which 'סוג פעולה' values are considered 'open'
+        const OPEN_ACTION_TYPES = ['הורדה', 'החלפה'];
 
         // --- Utility Functions ---
 
@@ -323,52 +325,47 @@
         }
 
         /**
-         * Calculates the number of days between a given ISO date string and the current date.
-         * @param {string} openDateIso - The date string in 'yyyy-MM-dd' format.
-         * @returns {number} The number of days, or 0 if date is invalid or in the future.
+         * Returns the number of 'ימים שעברו' from the container object.
+         * @param {Object} container - The container object.
+         * @returns {number} The number of days passed, or 0 if not available/invalid.
          */
-        function calculateOpenDays(openDateIso) {
-            if (!openDateIso) return 0;
-            const openDate = new Date(openDateIso);
-            const today = new Date();
-            // Reset time to 00:00:00 for accurate day calculation
-            openDate.setHours(0, 0, 0, 0);
-            today.setHours(0, 0, 0, 0);
-
-            const diffTime = Math.abs(today.getTime() - openDate.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            // If the open date is in the future, return 0 or adjust as needed
-            if (openDate > today) return 0;
-
-            return diffDays;
+        function getDaysPassed(container) {
+            const days = parseInt(container['ימים שעברו']);
+            return isNaN(days) ? 0 : days;
+        }
+        
+        /**
+         * Returns the number of 'ימים שעברו (עלתה)' from the container object.
+         * @param {Object} container - The container object.
+         * @returns {number} The number of days passed up, or 0 if not available/invalid.
+         */
+        function getDaysPassedUp(container) {
+            const days = parseInt(container['ימים שעברו (עלתה)']);
+            return isNaN(days) ? 0 : days;
         }
 
         /**
          * Calculates KPIs and updates the UI.
          */
         function renderKPIs() {
-            const totalOpen = filteredContainersData.filter(c => c['סטטוס'] === 'פתוח').length;
-            const overdue = filteredContainersData.filter(c => c['סטטוס'] === 'פתוח' && calculateOpenDays(c['תאריך פתיחה']) > 10).length;
+            const totalOpen = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה'])).length;
             
-            const today = new Date();
-            today.setHours(0,0,0,0);
+            const overdue = filteredContainersData.filter(c => 
+                OPEN_ACTION_TYPES.includes(c['סוג פעולה']) && getDaysPassed(c) > 10
+            ).length;
+            
+            // Assuming 'איסוף' type with 'ימים שעברו (עלתה)' close to 0 indicates collection today
             const collectedToday = filteredContainersData.filter(c => {
-                if (c['סטטוס'] === 'נאספה') {
-                    const statusChangeDate = new Date(c['תאריך איסוף'] || c['תאריך פתיחה']); // Assuming 'תאריך איסוף' might be a field or use openDate as fallback
-                    statusChangeDate.setHours(0,0,0,0);
-                    return statusChangeDate.getTime() === today.getTime();
-                }
-                return false;
+                return c['סוג פעולה'] === 'איסוף' && getDaysPassedUp(c) <= 1; // Collected today or yesterday (recently)
             }).length;
 
-            const openContainers = filteredContainersData.filter(c => c['סטטוס'] === 'פתוח');
-            const totalOpenDays = openContainers.reduce((sum, c) => sum + calculateOpenDays(c['תאריך פתיחה']), 0);
+            const openContainers = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה']));
+            const totalOpenDays = openContainers.reduce((sum, c) => sum + getDaysPassed(c), 0);
             const avgOpenDays = openContainers.length > 0 ? (totalOpenDays / openContainers.length).toFixed(1) : '0.0';
 
             document.getElementById('kpiTotalOpen').textContent = totalOpen;
             document.getElementById('kpiOverdue').textContent = overdue;
-            document.getElementById('kpiCollectedToday').textContent = collectedToday; // This might need a dedicated 'collected date' field on the sheet
+            document.getElementById('kpiCollectedToday').textContent = collectedToday;
             document.getElementById('kpiAvgOpenDays').textContent = avgOpenDays;
 
             if (overdue > 0) {
@@ -380,15 +377,15 @@
          * Renders the Chart.js charts.
          */
         function renderCharts() {
-            // Status Distribution Chart (Donut)
-            const statusCounts = filteredContainersData.reduce((acc, c) => {
-                acc[c['סטטוס']] = (acc[c['סטטוס']] || 0) + 1;
+            // Action Type Distribution Chart (Donut)
+            const actionTypeCounts = filteredContainersData.reduce((acc, c) => {
+                acc[c['סוג פעולה']] = (acc[c['סוג פעולה']] || 0) + 1;
                 return acc;
             }, {});
 
-            const statusLabels = Object.keys(statusCounts);
-            const statusData = Object.values(statusCounts);
-            const statusColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']; // Blue, Green, Yellow, Red, Gray
+            const actionTypeLabels = Object.keys(actionTypeCounts);
+            const actionTypeData = Object.values(actionTypeCounts);
+            const actionTypeColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']; // Blue, Green, Yellow, Red, Gray
 
             if (statusDistributionChart) {
                 statusDistributionChart.destroy();
@@ -397,10 +394,10 @@
             statusDistributionChart = new Chart(ctxStatus, {
                 type: 'doughnut',
                 data: {
-                    labels: statusLabels,
+                    labels: actionTypeLabels,
                     datasets: [{
-                        data: statusData,
-                        backgroundColor: statusColors.slice(0, statusLabels.length),
+                        data: actionTypeData,
+                        backgroundColor: actionTypeColors.slice(0, actionTypeLabels.length),
                         hoverOffset: 4
                     }]
                 },
@@ -422,9 +419,9 @@
                 }
             });
 
-            // Open Days Histogram Chart (Bar) for 'פתוח' containers
-            const openContainers = filteredContainersData.filter(c => c['סטטוס'] === 'פתוח');
-            const openDays = openContainers.map(c => calculateOpenDays(c['תאריך פתיחה']));
+            // Days Passed Histogram Chart (Bar) for 'open' containers
+            const openContainers = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה']));
+            const daysPassed = openContainers.map(c => getDaysPassed(c));
 
             // Create bins for histogram (e.g., 0-5, 6-10, 11-15, >15)
             const bins = {
@@ -434,7 +431,7 @@
                 '16-20 ימים': 0,
                 'מעל 20 ימים': 0
             };
-            openDays.forEach(days => {
+            daysPassed.forEach(days => {
                 if (days >= 0 && days <= 5) bins['0-5 ימים']++;
                 else if (days >= 6 && days <= 10) bins['6-10 ימים']++;
                 else if (days >= 11 && days <= 15) bins['11-15 ימים']++;
@@ -515,25 +512,25 @@
             }
 
             data.forEach(container => {
-                const openDays = calculateOpenDays(container['תאריך פתיחה']);
-                const isOverdue = container['סטטוס'] === 'פתוח' && openDays > 10;
+                const daysPassed = getDaysPassed(container);
+                const isOverdue = OPEN_ACTION_TYPES.includes(container['סוג פעולה']) && daysPassed > 10;
                 const rowClass = isOverdue ? 'overdue-row' : 'hover:bg-gray-50';
 
                 const row = document.createElement('tr');
                 row.classList.add(rowClass);
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${container['ID']}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['לקוח']}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['טלפון'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['כתובת'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['גודל מכולה'] || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDateToHebrew(container['תאריך פתיחה'])}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${isOverdue ? 'font-bold' : ''}">${openDays}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['סטטוס']}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['הערות'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${container['תעודה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['שם לקוח'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['שם סוכן'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDateToHebrew(container['מתאריך'])}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['סוג פעולה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${isOverdue ? 'font-bold' : ''}">${daysPassed}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['מס" מכולה ירדה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['מס" מכולה עלתה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${getDaysPassedUp(container)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                        <button class="text-indigo-600 hover:text-indigo-900 ml-2 edit-btn" data-id="${container['ID']}" aria-label="ערוך הזמנה">ערוך</button>
-                        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="${container['ID']}" aria-label="מחק הזמנה">מחק</button>
+                        <button class="text-indigo-600 hover:text-indigo-900 ml-2 edit-btn" data-id="${container['תעודה']}" aria-label="ערוך הזמנה">ערוך</button>
+                        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="${container['תעודה']}" aria-label="מחק הזמנה">מחק</button>
                     </td>
                 `;
                 tableBody.appendChild(row);
@@ -543,7 +540,7 @@
             tableBody.querySelectorAll('.edit-btn').forEach(button => {
                 button.addEventListener('click', (event) => {
                     const id = event.target.dataset.id;
-                    const container = allContainersData.find(c => c.ID === id);
+                    const container = allContainersData.find(c => c['תעודה'] === id);
                     if (container) {
                         showModal('edit', container);
                     } else {
@@ -568,24 +565,24 @@
          */
         function applyFilters() {
             const query = document.getElementById('searchQuery').value.toLowerCase();
-            const status = document.getElementById('statusFilter').value;
-            const maxOpenDays = parseInt(document.getElementById('maxOpenDaysFilter').value);
+            const actionType = document.getElementById('actionTypeFilter').value;
+            const maxDaysPassed = parseInt(document.getElementById('maxOpenDaysFilter').value);
 
             filteredContainersData = allContainersData.filter(container => {
                 // Free text search
                 const matchesSearch = query === '' ||
-                    container['לקוח'].toLowerCase().includes(query) ||
-                    container['טלפון'].toLowerCase().includes(query) ||
-                    container['כתובת'].toLowerCase().includes(query);
+                    (container['שם לקוח'] || '').toLowerCase().includes(query) ||
+                    (container['שם סוכן'] || '').toLowerCase().includes(query) ||
+                    (container['תעודה'] || '').toLowerCase().includes(query);
 
-                // Status filter
-                const matchesStatus = status === '' || container['סטטוס'] === status;
+                // Action Type filter
+                const matchesActionType = actionType === '' || container['סוג פעולה'] === actionType;
 
-                // Max open days filter
-                const openDays = calculateOpenDays(container['תאריך פתיחה']);
-                const matchesMaxOpenDays = isNaN(maxOpenDays) || openDays <= maxOpenDays;
+                // Max days passed filter (applies to 'open' containers based on 'ימים שעברו')
+                const daysPassed = getDaysPassed(container);
+                const matchesMaxDaysPassed = isNaN(maxDaysPassed) || daysPassed <= maxDaysPassed;
 
-                return matchesSearch && matchesStatus && matchesMaxOpenDays;
+                return matchesSearch && matchesActionType && matchesMaxDaysPassed;
             });
 
             renderKPIs();
@@ -670,7 +667,7 @@
 
         /**
          * Updates an existing container record.
-         * @param {Object} data - The container data including ID.
+         * @param {Object} data - The container data including תעודה.
          * @returns {Promise<boolean>} True if successful, false otherwise.
          */
         async function apiUpdate(data) {
@@ -708,7 +705,7 @@
 
         /**
          * Deletes a container record.
-         * @param {string} id - The ID of the container to delete.
+         * @param {string} id - The תעודה of the container to delete.
          * @returns {Promise<boolean>} True if successful, false otherwise.
          */
         async function apiDelete(id) {
@@ -751,14 +748,15 @@
         const orderModalOverlay = document.getElementById('orderModalOverlay');
         const modalTitle = document.getElementById('modalTitle');
         const orderForm = document.getElementById('orderForm');
-        const orderIdField = document.getElementById('orderId');
-        const clientNameField = document.getElementById('clientName');
-        const phoneField = document.getElementById('phone');
-        const addressField = document.getElementById('address');
-        const containerSizeField = document.getElementById('containerSize');
-        const openDateField = document.getElementById('openDate');
-        const statusField = document.getElementById('status');
-        const notesField = document.getElementById('notes');
+        const orderDocumentIdField = document.getElementById('orderDocumentId'); // Hidden field for actual document ID
+        const documentIdField = document.getElementById('documentId'); // Input field for user to see/edit 'תעודה'
+        const customerNameField = document.getElementById('customerName');
+        const agentNameField = document.getElementById('agentName');
+        const startDateField = document.getElementById('startDate');
+        const actionTypeField = document.getElementById('actionType');
+        const containerDownField = document.getElementById('containerDown');
+        const containerUpField = document.getElementById('containerUp');
+        const daysPassedUpField = document.getElementById('daysPassedUp');
 
         /**
          * Shows the add/edit modal and populates fields if in edit mode.
@@ -767,22 +765,26 @@
          */
         function showModal(mode, data = {}) {
             orderForm.reset(); // Clear form
-            orderIdField.value = ''; // Clear ID for add mode
+            orderDocumentIdField.value = ''; // Clear ID for add mode
+            documentIdField.readOnly = false; // Allow editing document ID for new entry, or disable for existing
 
             if (mode === 'add') {
                 modalTitle.textContent = 'הזמנה חדשה';
-                statusField.value = 'פתוח'; // Default status for new
-                openDateField.valueAsDate = new Date(); // Default to today
+                actionTypeField.value = 'הורדה'; // Default action type for new
+                startDateField.valueAsDate = new Date(); // Default to today
             } else if (mode === 'edit') {
-                modalTitle.textContent = `ערוך הזמנה: ${data.ID}`;
-                orderIdField.value = data.ID;
-                clientNameField.value = data['לקוח'];
-                phoneField.value = data['טלפון'] || '';
-                addressField.value = data['כתובת'] || '';
-                containerSizeField.value = data['גודל מכולה'] || '10 קוב';
-                openDateField.value = data['תאריך פתיחה'] || ''; // ISO format
-                statusField.value = data['סטטוס'] || 'פתוח';
-                notesField.value = data['הערות'] || '';
+                modalTitle.textContent = `ערוך הזמנה: ${data['תעודה']}`;
+                orderDocumentIdField.value = data['תעודה']; // Store 'תעודה' in hidden field for API calls
+                documentIdField.value = data['תעודה'] || '';
+                documentIdField.readOnly = true; // Prevent editing document ID for existing entry
+
+                customerNameField.value = data['שם לקוח'] || '';
+                agentNameField.value = data['שם סוכן'] || '';
+                startDateField.value = data['מתאריך'] || ''; // ISO format
+                actionTypeField.value = data['סוג פעולה'] || 'הורדה';
+                containerDownField.value = data['מס" מכולה ירדה'] || '';
+                containerUpField.value = data['מס" מכולה עלתה'] || '';
+                daysPassedUpField.value = data['ימים שעברו (עלתה)'] || '';
             }
             orderModalOverlay.classList.add('show');
         }
@@ -802,28 +804,31 @@
             event.preventDefault(); // Prevent default form submission
 
             const containerData = {
-                'לקוח': clientNameField.value.trim(),
-                'טלפון': phoneField.value.trim(),
-                'כתובת': addressField.value.trim(),
-                'גודל מכולה': containerSizeField.value,
-                'תאריך פתיחה': openDateField.value, // Already ISO format from type="date"
-                'סטטוס': statusField.value,
-                'הערות': notesField.value.trim()
+                'תעודה': documentIdField.value.trim(), // Use input field for 'תעודה'
+                'שם לקוח': customerNameField.value.trim(),
+                'שם סוכן': agentNameField.value.trim(),
+                'מתאריך': startDateField.value, // Already ISO format from type="date"
+                'סוג פעולה': actionTypeField.value,
+                'מס" מכולה ירדה': containerDownField.value.trim(),
+                'מס" מכולה עלתה': containerUpField.value.trim(),
+                'ימים שעברו (עלתה)': daysPassedUpField.value.trim()
             };
 
             // Basic validation
-            if (!containerData['לקוח'] || !containerData['תאריך פתיחה']) {
-                showToast('שדות "לקוח" ו"תאריך פתיחה" הם חובה.', 'error');
+            if (!containerData['שם לקוח'] || !containerData['מתאריך']) {
+                showToast('שדות "שם לקוח" ו"מתאריך" הם חובה.', 'error');
                 return;
             }
 
-            const isEdit = !!orderIdField.value;
+            const isEdit = !!orderDocumentIdField.value; // Check hidden field for existing document ID
             let success;
 
             if (isEdit) {
-                containerData['ID'] = orderIdField.value;
+                // For edit, ensure the 'תעודה' from the original record is used for update
+                containerData['תעודה'] = orderDocumentIdField.value;
                 success = await apiUpdate(containerData);
             } else {
+                // For add, 'תעודה' might be empty, server will generate if needed
                 success = await apiAdd(containerData);
             }
 
@@ -842,7 +847,7 @@
         document.getElementById('orderForm').addEventListener('submit', saveContainer);
 
         document.getElementById('searchQuery').addEventListener('input', applyFilters);
-        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('actionTypeFilter').addEventListener('change', applyFilters);
         document.getElementById('maxOpenDaysFilter').addEventListener('input', applyFilters);
 
         // Close modal when clicking outside content
