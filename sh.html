@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>לוח בקרה לניהול מכולות</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --secondary: #f97316;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+    
+    body {
+      font-family: 'Rubik', Arial, sans-serif;
+      direction: rtl;
+      background-color: #f8fafc; /* Lighter background for the entire page */
+    }
+    
+    .container-fade {
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); /* Subtle gradient for main container */
+      border-radius: 12px; /* More rounded corners */
+      padding: 1.5rem; /* More padding */
+    }
+    
+    .metric-card {
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      border-radius: 10px; /* Consistent rounded corners */
+      padding: 1.25rem; /* Slightly more padding */
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-3px); /* More pronounced hover effect */
+      box-shadow: 0 12px 18px -4px rgba(0, 0, 0, 0.15), 0 5px 8px -2px rgba(0, 0, 0, 0.08); /* Stronger shadow */
+    }
+    
+    .table-row:hover {
+      background-color: #e2e8f0 !important; /* Slightly darker hover for all rows */
+    }
+
+    /* Conditional styling based on action type */
+    .action-הצבה { background-color: #dcfce7 !important; } /* Light green */
+    .action-הצבה:hover { background-color: #bbf7d0 !important; }
+
+    .action-איסוף { background-color: #fee2e2 !important; } /* Light red */
+    .action-איסוף:hover { background-color: #fecaca !important; }
+
+    .action-פריקה { background-color: #eff6ff !important; } /* Light blue */
+    .action-פריקה:hover { background-color: #dbeafe !important; }
+
+    .action-טעינה { background-color: #fffbeb !important; } /* Light yellow */
+    .action-טעינה:hover { background-color: #fef3c7 !important; }
+
+    .action-החלפה { background-color: #ffedd5 !important; } /* Light orange */
+    .action-החלפה:hover { background-color: #fed7aa !important; }
+
+    .action-הוצאה { background-color: #fce7e7 !important; } /* Lighter red */
+    .action-הוצאה:hover { background-color: #fcc2c2 !important; }
+
+    .action-פינוי-במקום, .action-הזזה { background-color: #ede9fe !important; } /* Light purple */
+    .action-פינוי-במקום:hover, .action-הזזה:hover { background-color: #ddd6fe !important; }
+
+    /* General overdue and today rows */
+    .overdue-row {
+      background-color: #fca5a5 !important; /* More prominent red for overdue */
+      color: #7f1d1d; /* Darker text for contrast */
+      font-weight: 600; /* Bolder text */
+    }
+    
+    .overdue-row:hover {
+      background-color: #f87171 !important;
+    }
+    
+    .today-row {
+      background-color: #a7f3d0 !important; /* More prominent green for today */
+      color: #065f46; /* Darker text for contrast */
+      font-weight: 600; /* Bolder text */
+    }
+    
+    .today-row:hover {
+      background-color: #6ee7b7 !important;
+    }
+
+    /* Closed order styling */
+    .closed-row {
+      text-decoration: line-through;
+      color: #a0a0a0; /* Lighter grey for closed */
+      background-color: #e9e9e9 !important; /* Lighter background for closed */
+      font-style: italic;
+    }
+    
+    .closed-row:hover {
+      background-color: #d9d9d9 !important;
+    }
+    
+    .chart-container {
+      transition: all 0.3s ease;
+      border-radius: 10px; /* Consistent rounded corners */
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .chart-container:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary);
+      transition: all 0.3s ease;
+      border-radius: 8px; /* Slightly more rounded buttons */
+      padding: 0.6rem 1.2rem;
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--primary-light);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .btn-secondary {
+      background-color: var(--secondary);
+      transition: all 0.3s ease;
+      border-radius: 8px;
+      padding: 0.6rem 1.2rem;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #fb923c;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn-danger {
+      background-color: var(--danger);
+      transition: all 0.3s ease;
+      border-radius: 8px;
+      padding: 0.6rem 1.2rem;
+    }
+
+    .btn-danger:hover {
+      background-color: #dc2626;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .badge-primary {
+      background-color: var(--primary-light);
+      color: white;
+    }
+    
+    .badge-danger {
+      background-color: var(--danger);
+      color: white;
+    }
+    
+    .badge-success {
+      background-color: var(--success);
+      color: white;
+    }
+    
+    .badge-warning {
+      background-color: var(--warning);
+      color: white;
+    }
+    
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 120px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -60px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1000; /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .close-button {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* Flashing emoji animation */
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+    .flashing-emoji {
+      animation: flash 1.5s infinite ease-in-out;
+      display: inline-block; /* Essential for animation */
+      margin-right: 4px; /* Space between emoji and text */
+      font-size: 1.1em; /* Slightly larger emoji */
+    }
+
+    /* Flashing container number for overdue rows */
+    @keyframes containerFlash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .flashing-container-number {
+      animation: containerFlash 1.8s infinite ease-in-out;
+      font-weight: bold; /* Ensure it's bold */
+    }
+    
+    /* Table column divider style */
+    .table-divider {
+      border-left: 2px solid #a0a0a0; /* Thicker, slightly darker divider for more prominence */
+    }
+
+    /* Specific styles for table headers and cells to make text bolder and darker */
+    #ordersTable thead th {
+        font-weight: 800; /* Extra bold */
+        color: #333; /* Darker grey */
+    }
+
+    #ordersTable tbody td {
+        font-weight: 600; /* Semi-bold */
+        color: #444; /* Darker grey */
+    }
+
+    @media (max-width: 768px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      
+      .chart-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .metrics-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-7xl container-fade">
+    <!-- Header Section -->
+    <header class="mb-8 text-center">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">לוח בקרה לניהול מכולות</h1>
+      <p class="text-gray-700 font-medium">ניהול וניתוח הזמנות מכולות בזמן אמת</p>
+      
+      <!-- Overdue Orders Banner -->
+      <div id="overdueOrdersBanner" class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-md hidden">
+        <h2 class="font-bold text-xl mb-3 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          לקוחות שחרגו:
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-red-300">
+            <thead class="bg-red-50">
+              <tr>
+                <th class="px-4 py-2 text-right text-xs font-semibold text-red-600 uppercase tracking-wider">תעודה</th>
+                <th class="px-4 py-2 text-right text-xs font-semibold text-red-600 uppercase tracking-wider">שם לקוח</th>
+                <th class="px-4 py-2 text-right text-xs font-semibold text-red-600 uppercase tracking-wider">כתובת</th>
+                <th class="px-4 py-2 text-right text-xs font-semibold text-red-600 uppercase tracking-wider">מכולה ירדה</th>
+                <th class="px-4 py-2 text-right text-xs font-semibold text-red-600 uppercase tracking-wider">ימים חריגים</th>
+              </tr>
+            </thead>
+            <tbody id="overdueOrdersTableBody" class="bg-red-50 divide-y divide-red-200">
+              <!-- Overdue orders will be listed here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Action Buttons and Filters -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap gap-2">
+          <button id="newOrderBtn" class="btn-primary text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            הזמנה חדשה
+          </button>
+          <button id="refreshBtn" class="btn-secondary text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+            רענן נתונים
+          </button>
+        </div>
+        
+        <div class="flex flex-wrap gap-3 items-center">
+          <div class="relative">
+            <input type="text" id="searchInput" placeholder="חיפוש הזמנה..." 
+                   class="border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-2.5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          
+          <select id="actionFilter" class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">כל סוגי הפעולה</option>
+          </select>
+          
+          <div class="relative">
+            <input type="number" id="daysMax" placeholder="ימים שעברו (מקסימום)" 
+                   class="border border-gray-300 rounded-lg px-4 py-2 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <span class="absolute left-3 top-2.5 text-gray-500 text-sm">ימים</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Metrics Cards -->
+    <div class="metrics-grid grid grid-cols-4 gap-4 mb-6">
+      <div class="metric-card bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+        <h3 class="text-gray-700 text-sm font-semibold mb-1">סה"כ הזמנות פתוחות</h3>
+        <div class="flex items-center justify-between">
+          <span id="totalOpen" class="text-3xl font-extrabold text-gray-900">0</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+      </div>
+      
+      <div class="metric-card bg-white rounded-lg p-4 shadow-sm border-l-4 border-red-500">
+        <h3 class="text-gray-700 text-sm font-semibold mb-1">הזמנות חריגות (&gt; 10 ימים)</h3>
+        <div class="flex items-center justify-between">
+          <span id="overdue" class="text-3xl font-extrabold text-gray-900">0</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+      
+      <div class="metric-card bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+        <h3 class="text-gray-700 text-sm font-semibold mb-1">פעולות איסוף היום</h3>
+        <div class="flex items-center justify-between">
+          <span id="todayActions" class="text-3xl font-extrabold text-gray-900">0</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      </div>
+      
+      <div class="metric-card bg-white rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+        <h3 class="text-gray-700 text-sm font-semibold mb-1">ממוצע ימים שעברו</h3>
+        <div class="flex items-center justify-between">
+          <span id="avgDays" class="text-3xl font-extrabold text-gray-900">0.0</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Charts Section -->
+    <div class="chart-grid grid grid-cols-2 gap-6 mb-6">
+      <div class="chart-container bg-white rounded-lg p-4 shadow-sm">
+        <h3 class="text-gray-800 font-semibold mb-3">התפלגות סוגי פעולה</h3>
+        <canvas id="actionChart" height="150"></canvas>
+      </div>
+      <div class="chart-container bg-white rounded-lg p-4 shadow-sm">
+        <h3 class="text-gray-800 font-semibold mb-3">היסטוגרמת ימים שעברו</h3>
+        <canvas id="daysChart" height="150"></canvas>
+      </div>
+    </div>
+    
+    <!-- Orders Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div class="overflow-x-auto">
+        <table id="ordersTable" class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">תעודה</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">שם לקוח</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">שם סוכן</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">כתובת</th> <!-- New column -->
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">ימים שעברו</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">מתאריך</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">סוג פעולה</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">מס" מכולה ירדה</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">מס" מכולה עלתה</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider table-divider">ימים שעברו (עלתה)</th>
+              <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">פעולות</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td colspan="11" class="px-6 py-4 text-center text-gray-500">טוען נתונים...</td> <!-- Colspan updated to 11 -->
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button">&times;</span>
+      <p id="modalMessage" class="text-lg font-semibold mb-4 text-gray-800"></p>
+      <div class="flex justify-center gap-4">
+        <button id="modalConfirmBtn" class="btn-danger text-white px-4 py-2 rounded-lg font-medium">אשר</button>
+        <button id="modalCancelBtn" class="btn-secondary text-white px-4 py-2 rounded-lg font-medium">בטל</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7E0OrpJc7Yq4xhFTj376xVMo9VfvhLAjDZ6zdt8QGzXvlzKkANZxn4cV5AfvDPQ0m/exec';
+    let allOrders = [];
+    let actionChartInstance = null;
+    let daysChartInstance = null;
+    let stuckContainersGlobal = new Set(); // Global set for stuck containers
+
+    // Define the required fields for a row to be displayed (A1:I1 equivalent)
+    const REQUIRED_FIELDS_FOR_DISPLAY = [
+        'תעודה', 'שם לקוח', 'שם סוכן', 'כתובת', 'מתאריך', 'סוג פעולה', 
+        'ימים שעברו', 'מס" מכולה ירדה', 'מס" מכולה עלתה', 'ימים שעברו (עלתה)'
+    ];
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add event listeners
+      document.getElementById('refreshBtn').addEventListener('click', fetchOrders);
+      document.getElementById('searchInput').addEventListener('input', debounce(filterOrders, 300));
+      document.getElementById('actionFilter').addEventListener('change', filterOrders);
+      document.getElementById('daysMax').addEventListener('input', debounce(filterOrders, 300));
+      
+      // Modal event listeners
+      document.querySelector('.close-button').addEventListener('click', closeModal);
+      document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+      window.addEventListener('click', (event) => {
+        if (event.target === document.getElementById('confirmModal')) {
+          closeModal();
+        }
+      });
+
+      // Initial fetch
+      fetchOrders();
+    });
+
+    // Debounce function for better performance
+    function debounce(func, wait) {
+      let timeout;
+      return function() {
+        const context = this, args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          func.apply(context, args);
+        }, wait);
+      };
+    }
+
+    // Function to format date from ISO string to DD/MM/YYYY
+    function formatDate(isoString) {
+      if (!isoString) return '-';
+      try {
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) { // Check for invalid date
+          return isoString; // Return original if invalid
+        }
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      } catch (e) {
+        console.error("Error parsing date:", isoString, e);
+        return isoString; // Fallback to original if parsing fails
+      }
+    }
+
+    // Function to identify "stuck" containers
+    function identifyStuckContainers(orders) {
+        const containersDownRecords = new Map(); // Map: containerNum -> [{order, actionType}, ...]
+        const containersUpSet = new Set();   
+        
+        // Populate containersDownRecords and containersUpSet
+        orders.forEach(o => {
+            const containerDown = String(o['מס" מכולה ירדה'] || '').trim();
+            const containerUp = String(o['מס" מכולה עלתה'] || '').trim();
+            const actionType = o['סוג פעולה'];
+
+            if (containerDown && containerDown !== '0') {
+                if (!containersDownRecords.has(containerDown)) {
+                    containersDownRecords.set(containerDown, []);
+                }
+                containersDownRecords.get(containerDown).push({order: o, actionType: actionType});
+            }
+            if (containerUp && containerUp !== '0') {
+                containersUpSet.add(containerUp);
+            }
+        });
+
+        const stuck = new Set();
+        // Iterate through all containers that ever went down
+        containersDownRecords.forEach((records, containerNum) => {
+            // Check if this container number ever went up
+            if (!containersUpSet.has(containerNum)) {
+                // If it never went up, check if any of its 'down' records are NOT 'הוצאה' or 'פינוי במקום'
+                const isTrulyStuck = records.some(record => 
+                    record.actionType !== 'הוצאה' && record.actionType !== 'פינוי במקום'
+                );
+                if (isTrulyStuck) {
+                    stuck.add(containerNum);
+                }
+            }
+        });
+        return stuck;
+    }
+
+    // Fetch orders from Google Sheets
+    async function fetchOrders() {
+      try {
+        // Show loading state
+        const tbody = document.querySelector('#ordersTable tbody');
+        tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500"><div class="flex justify-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> טוען נתונים...</div></td></tr>';
+        
+        const res = await fetch(`${SCRIPT_URL}?action=list`);
+        const data = await res.json();
+        
+        if (data.success) {
+          allOrders = data.data.map(order => {
+            return { 
+              ...order, 
+              // 'closed' status determined solely by the sheet value.
+              // 'הוצאה' and 'פינוי במקום' do NOT auto-close the order.
+              closed: order.closed === 'TRUE' 
+            }; 
+          });
+          stuckContainersGlobal = identifyStuckContainers(allOrders); // Update global stuck containers
+          populateActionFilter();
+          updateDashboard(); // Call updateDashboard without arguments, it will read current filter values
+        } else {
+          showError('שגיאה בשליפת נתונים');
+        }
+      } catch (error) {
+        showError('שגיאה בחיבור לשרת');
+        console.error('Error fetching orders:', error);
+      }
+    }
+
+    // Populate action filter dropdown
+    function populateActionFilter() {
+      const select = document.getElementById('actionFilter');
+      // FIX: Correctly extract 'סוג פעולה' for the filter options
+      const actions = [...new Set(allOrders.map(o => o['סוג פעולה']).filter(a => a && String(a).trim() !== ''))];
+      select.innerHTML = '<option value="">כל סוגי הפעולה</option>';
+      actions.forEach(a => {
+        const option = document.createElement('option');
+        option.value = a;
+        option.textContent = a;
+        select.appendChild(option);
+      });
+    }
+
+    // Filter orders and update dashboard. This function is triggered by user inputs.
+    function filterOrders() {
+        updateDashboard(); // Simply trigger a re-render with current filter settings
+    }
+
+    // Update the dashboard with filtered orders for metrics/charts, and all complete orders for table display.
+    function updateDashboard() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const actionFilterValue = document.getElementById('actionFilter').value;
+        const daysMax = parseInt(document.getElementById('daysMax').value) || Infinity;
+
+        // Filter orders for metrics, charts, and overdue banner (active and matching user filters)
+        const activeAndFilteredOrders = allOrders.filter(o => {
+            // First, exclude orders explicitly marked as closed from active calculations
+            if (o.closed) return false;
+
+            // Apply search filters
+            const matchesSearch = (o['שם לקוח']?.toLowerCase().includes(searchTerm) ||
+                                 o['שם סוכן']?.toLowerCase().includes(searchTerm) ||
+                                 o['תעודה']?.toLowerCase().includes(searchTerm) ||
+                                 o['כתובת']?.toLowerCase().includes(searchTerm));
+
+            // Apply action type filter
+            const matchesAction = actionFilterValue ? (o['סוג פעולה'] === actionFilterValue) : true;
+            
+            // Apply days max filter
+            const matchesDays = parseInt(o['ימים שעברו'] || 0) <= daysMax;
+
+            return matchesSearch && matchesAction && matchesDays;
+        });
+
+        // Update main table (shows all complete orders, with visual filters applied)
+        updateOrdersTable(allOrders); 
+        
+        // Update metrics, charts, and overdue banner with the active and user-filtered subset
+        updateMetrics(activeAndFilteredOrders);
+        updateCharts(activeAndFilteredOrders);
+        updateOverdueBanner(activeAndFilteredOrders);
+    }
+
+    // Update the orders table
+    function updateOrdersTable(orders) {
+      const tbody = document.querySelector('#ordersTable tbody');
+      tbody.innerHTML = '';
+      
+      if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500 font-bold">לא נמצאו הזמנות תואמות.</td></tr>'; 
+        return;
+      }
+      
+      const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      
+      // Apply search and filter criteria for TABLE DISPLAY
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const actionFilterValue = document.getElementById('actionFilter').value;
+      const daysMax = parseInt(document.getElementById('daysMax').value) || Infinity;
+
+      const ordersToDisplayInTable = orders.filter(o => {
+        // Check for row completeness first (A1:I1 logic, now including Address)
+        const isRowComplete = REQUIRED_FIELDS_FOR_DISPLAY.every(field => {
+            const value = o[field];
+            return value !== null && value !== undefined && String(value).trim() !== '';
+        });
+        if (!isRowComplete) return false; // Skip incomplete rows
+
+        // Now apply search/filter for visibility in the table
+        const matchesSearch = (o['שם לקוח']?.toLowerCase().includes(searchTerm) ||
+                             o['שם סוכן']?.toLowerCase().includes(searchTerm) ||
+                             o['תעודה']?.toLowerCase().includes(searchTerm) ||
+                             o['כתובת']?.toLowerCase().includes(searchTerm));
+        const matchesAction = actionFilterValue ? (o['סוג פעולה'] === actionFilterValue) : true;
+        const matchesDays = parseInt(o['ימים שעברו'] || 0) <= daysMax;
+
+        // If the order is closed, we still display it but it might not pass *active* filters for other purposes
+        // Here, we display it if it matches search/action/days, even if closed, to show the strikethrough.
+        return matchesSearch && matchesAction && matchesDays;
+      });
+
+      if (ordersToDisplayInTable.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500 font-bold">לא נמצאו הזמנות תואמות לפילטרים.</td></tr>';
+        return;
+      }
+
+      ordersToDisplayInTable.forEach(o => {
+        const daysPassed = parseInt(o['ימים שעברו'] || 0);
+        const isOverdue = daysPassed > 10 && !o.closed; 
+        const orderDateFormatted = formatDate(o['מתאריך']);
+        const isToday = orderDateFormatted === today && !o.closed; 
+
+        let actionTypeClass = '';
+        if (o['סוג פעולה']) {
+            actionTypeClass = `action-${String(o['סוג פעולה']).trim().replace(/\s/g, '-')}`; 
+        }
+
+        let rowClass = `table-row ${actionTypeClass}`;
+        if (o.closed) {
+            rowClass = `table-row closed-row`;
+        } else if (isOverdue) {
+            rowClass += ` overdue-row`;
+        } else if (isToday) {
+            rowClass += ` today-row`;
+        }
+        
+        const tr = document.createElement('tr');
+        tr.className = rowClass;
+        tr.setAttribute('data-order-id', o['תעודה']);
+
+        // Flashing emoji logic for stuck containers
+        const containerDownNum = String(o['מס" מכולה ירדה'] || '').trim();
+        let flashingEmojiHtml = '';
+
+        // Add flashing emoji only if it's genuinely stuck AND not an 'הוצאה' or 'פינוי במקום' action
+        if (stuckContainersGlobal.has(containerDownNum) && 
+            o['סוג פעולה'] !== 'הוצאה' && o['סוג פעולה'] !== 'פינוי במקום') {
+            flashingEmojiHtml = '<span class="flashing-emoji">💡</span>'; 
+        }
+
+        // Flashing container number for overdue rows
+        const containerDownDisplay = `<span class="${isOverdue ? 'flashing-container-number' : ''}">${o['מס" מכולה ירדה'] || '-'}</span>`;
+
+        const closeButtonHtml = o.closed ? '' : `
+            <button onclick="confirmCloseOrder('${o['תעודה']}')" class="text-red-600 hover:text-red-900 tooltip mr-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+              <span class="tooltip-text">סגור הזמנה</span>
+            </button>
+        `;
+        
+        // Delete button
+        const deleteButtonHtml = `
+            <button onclick="confirmDeleteOrder('${o['תעודה']}')" class="text-gray-500 hover:text-gray-800 tooltip">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span class="tooltip-text">מחק הזמנה</span>
+            </button>
+        `;
+
+        tr.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 table-divider">${o['תעודה'] || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${o['שם לקוח'] || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${o['שם סוכן'] || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${o['כתובת'] || '-'}</td> <!-- New data cell -->
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${o['ימים שעברו'] || '0'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${formatDate(o['מתאריך'])}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">
+            ${o['סוג פעולה'] || '-'}
+            ${isToday ? '<span class="badge badge-success ml-2">היום</span>' : ''}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${flashingEmojiHtml}${containerDownDisplay}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${o['מס" מכולה עלתה'] || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 table-divider">${o['ימים שעברו (עלתה)'] || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 flex items-center">
+            <button onclick="editOrder('${o['תעודה']}')" class="text-blue-600 hover:text-blue-900 tooltip mr-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+              <span class="tooltip-text">ערוך הזמנה</span>
+            </button>
+            ${closeButtonHtml}
+            ${deleteButtonHtml}
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Update metrics cards
+    function updateMetrics(orders) {
+      const totalOpen = orders.length; 
+      const overdue = orders.filter(o => parseInt(o['ימים שעברו'] || 0) > 10).length;
+      
+      const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const todayActions = orders.filter(o => o['סוג פעולה'] === 'איסוף' && formatDate(o['מתאריך']) === today).length;
+      
+      const avgDays = orders.length ? 
+        (orders.reduce((sum, o) => sum + parseInt(o['ימים שעברו'] || 0), 0) / orders.length).toFixed(1) : 
+        '0.0';
+
+      document.getElementById('totalOpen').textContent = totalOpen;
+      document.getElementById('overdue').textContent = overdue;
+      document.getElementById('todayActions').textContent = todayActions;
+      document.getElementById('avgDays').textContent = avgDays;
+    }
+
+    // Update charts
+    function updateCharts(orders) {
+      renderActionChart(orders);
+      renderDaysChart(orders);
+    }
+
+    // Render action distribution chart
+    function renderActionChart(orders) {
+      const ctx = document.getElementById('actionChart').getContext('2d');
+      const counts = {};
+      
+      orders.forEach(o => { 
+        counts[o['סוג פעולה']] = (counts[o['סוג פעולה']] || 0) + 1; 
+      });
+      
+      const backgroundColors = generateColors(Object.keys(counts).length, 0.7);
+      const borderColors = generateColors(Object.keys(counts).length, 1);
+
+      if (actionChartInstance) actionChartInstance.destroy();
+      
+      actionChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(counts),
+          datasets: [{
+            label: 'מספר הזמנות',
+            data: Object.values(counts),
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: {
+                  family: 'Rubik',
+                  size: 14,
+                  weight: 'bold'
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.raw}`;
+                }
+              },
+              titleFont: {
+                family: 'Rubik'
+              },
+              bodyFont: {
+                family: 'Rubik'
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0,
+                font: {
+                  family: 'Rubik'
+                }
+              },
+              grid: {
+                color: '#e0e0e0' 
+              }
+            },
+            x: {
+              ticks: {
+                font: {
+                  family: 'Rubik'
+                }
+              },
+              grid: {
+                color: '#e0e0e0'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Render days passed histogram
+    function renderDaysChart(orders) {
+      const ctx = document.getElementById('daysChart').getContext('2d');
+      const days = orders.map(o => parseInt(o['ימים שעברו'] || 0)).sort((a, b) => a - b);
+      
+      const bins = {};
+      const maxDays = Math.max(...days, 0);
+      const binSize = 5; 
+      
+      for (let i = 0; i <= maxDays + binSize; i += binSize) {
+        const binStart = i;
+        const binEnd = i + binSize - 1;
+        const binLabel = `${binStart}-${binEnd} ימים`;
+        bins[binLabel] = 0;
+      }
+
+      days.forEach(d => {
+        const binIndex = Math.floor(d / binSize) * binSize;
+        const binLabel = `${binIndex}-${binIndex + binSize - 1} ימים`;
+        const foundBin = Object.keys(bins).find(key => {
+            const [start, end] = key.split('-').map(s => parseInt(s.replace(' ימים', '')));
+            return d >= start && d <= end;
+        });
+        if (foundBin) {
+            bins[foundBin]++;
+        } else { 
+            const lastBinKey = Object.keys(bins)[Object.keys(bins).length - 1];
+            if (lastBinKey && d > parseInt(lastBinKey.split('-')[0])) {
+                bins[lastBinKey]++;
+            }
+        }
+      });
+
+      for (const key in bins) {
+          if (bins[key] === 0) {
+              delete bins[key];
+          }
+      }
+
+      const chartLabels = Object.keys(bins);
+      const chartData = Object.values(bins);
+      
+      if (daysChartInstance) daysChartInstance.destroy();
+      
+      daysChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'מספר הזמנות',
+            data: chartData,
+            backgroundColor: 'rgba(249, 115, 22, 0.7)',
+            borderColor: 'rgba(249, 115, 22, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: {
+                  family: 'Rubik',
+                  size: 14,
+                  weight: 'bold'
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `טווח ימים: ${context.label}, מספר הזמנות: ${context.raw}`;
+                }
+              },
+              titleFont: {
+                family: 'Rubik'
+              },
+              bodyFont: {
+                family: 'Rubik'
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0,
+                font: {
+                  family: 'Rubik'
+                }
+              },
+              grid: {
+                color: '#e0e0e0'
+              }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'טווח ימים שעברו',
+                    font: {
+                      family: 'Rubik',
+                      size: 14,
+                      weight: 'bold'
+                    }
+                },
+                ticks: {
+                  font: {
+                    family: 'Rubik'
+                  }
+                },
+                grid: {
+                  color: '#e0e0e0'
+                }
+            }
+          }
+        }
+      });
+    }
+
+    // Generate random colors for charts
+    function generateColors(count, opacity) {
+      const colors = [];
+      const hueStep = 360 / count;
+      
+      for (let i = 0; i < count; i++) {
+        const hue = i * hueStep;
+        colors.push(`hsla(${hue}, 70%, 60%, ${opacity})`);
+      }
+      
+      return colors;
+    }
+
+    // Show custom modal message instead of alert
+    function showModal(message, onConfirm = null) {
+      document.getElementById('modalMessage').textContent = message;
+      const confirmBtn = document.getElementById('modalConfirmBtn');
+      if (onConfirm) {
+        confirmBtn.style.display = 'inline-block';
+        confirmBtn.onclick = () => {
+          onConfirm();
+          closeModal();
+        };
+      } else {
+        confirmBtn.style.display = 'none'; 
+      }
+      document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    // Close custom modal
+    function closeModal() {
+      document.getElementById('confirmModal').style.display = 'none';
+      document.getElementById('modalConfirmBtn').onclick = null; 
+    }
+
+    // Show error message
+    function showError(message) {
+      const tbody = document.querySelector('#ordersTable tbody');
+      tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-4 text-center text-red-600 font-bold">${message}</td></tr>`; 
+      
+      document.getElementById('totalOpen').textContent = '0';
+      document.getElementById('overdue').textContent = '0';
+      document.getElementById('todayActions').textContent = '0';
+      document.getElementById('avgDays').textContent = '0.0';
+      
+      if (actionChartInstance) {
+        actionChartInstance.destroy();
+        actionChartInstance = null;
+      }
+      if (daysChartInstance) {
+        daysChartInstance.destroy();
+        daysChartInstance = null;
+      }
+    }
+
+    // Edit order function (using custom modal)
+    function editOrder(orderId) {
+      showModal(`עריכת הזמנה ${orderId} - פונקציונליות זו תפותח בהמשך`);
+    }
+
+    // Confirm close order function (using custom modal)
+    function confirmCloseOrder(orderId) {
+        showModal(`האם אתה בטוח שברצונך לסגור את הזמנה מספר ${orderId}?`, () => closeOrder(orderId));
+    }
+
+    // Close order function
+    async function closeOrder(orderId) {
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=close&orderId=${orderId}`);
+            const data = await res.json();
+
+            if (data.success) {
+                const index = allOrders.findIndex(o => o['תעודה'] === orderId);
+                if (index !== -1) {
+                    allOrders[index].closed = true; 
+                }
+                showModal(`הזמנה ${orderId} נסגרה בהצלחה!`);
+                stuckContainersGlobal = identifyStuckContainers(allOrders); // Recalculate stuck containers
+                updateDashboard(); // Update the dashboard with the new state of all orders
+            } else {
+                showModal(`שגיאה בסגירת הזמנה ${orderId}: ${data.message || 'נסה שוב מאוחר יותר.'}`);
+            }
+        } catch (error) {
+            console.error('Error closing order:', error);
+            showModal(`שגיאה בחיבור לשרת בעת סגירת הזמנה ${orderId}.`);
+        }
+    }
+
+    // Confirm delete order function
+    function confirmDeleteOrder(orderId) {
+        showModal(`האם אתה בטוח שברצונך למחוק את הזמנה מספר ${orderId}? פעולה זו בלתי הפיכה!`, () => deleteOrder(orderId));
+    }
+
+    // Delete order function
+    async function deleteOrder(orderId) {
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=delete&orderId=${orderId}`); // New action for Google Script
+            const data = await res.json();
+
+            if (data.success) {
+                // Remove the order from the local allOrders array
+                allOrders = allOrders.filter(o => o['תעודה'] !== orderId);
+                showModal(`הזמנה ${orderId} נמחקה בהצלחה!`);
+                stuckContainersGlobal = identifyStuckContainers(allOrders); // Recalculate stuck containers
+                updateDashboard(); // Update the dashboard
+            } else {
+                showModal(`שגיאה במחיקת הזמנה ${orderId}: ${data.message || 'נסה שוב מאוחר יותר.'}`);
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            showModal(`שגיאה בחיבור לשרת בעת מחיקת הזמנה ${orderId}.`);
+        }
+    }
+
+    // Update overdue orders banner with a small table
+    function updateOverdueBanner(orders) {
+      const overdueTableBody = document.getElementById('overdueOrdersTableBody');
+      const overdueBanner = document.getElementById('overdueOrdersBanner');
+      
+      overdueTableBody.innerHTML = ''; 
+
+      const overdueOrders = orders.filter(o => parseInt(o['ימים שעברו'] || 0) > 10 && !o.closed);
+
+      if (overdueOrders.length > 0) {
+        overdueBanner.classList.remove('hidden');
+        overdueOrders.forEach(o => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-red-200';
+          tr.innerHTML = `
+            <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-red-800">${o['תעודה'] || '-'}</td>
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-red-700">${o['שם לקוח'] || '-'}</td>
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-red-700">${o['כתובת'] || '-'}</td> 
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-red-700">${o['מס" מכולה ירדה'] || '-'}</td>
+            <td class="px-4 py-2 whitespace-nowrap text-sm font-bold text-red-800">${o['ימים שעברו'] || '0'}</td>
+          `;
+          overdueTableBody.appendChild(tr);
+        });
+      } else {
+        overdueBanner.classList.add('hidden');
+      }
+    }
+
+    // Expose functions to global scope for button clicks
+    window.editOrder = editOrder;
+    window.confirmCloseOrder = confirmCloseOrder;
+    window.confirmDeleteOrder = confirmDeleteOrder; 
+  </script>
+</body>
+</html>
