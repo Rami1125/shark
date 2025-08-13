@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לוח בקרה לניהול שכירות מכולות</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Rubik -->
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f3f4f6;
+            direction: rtl; /* Ensure RTL for the entire body */
+        }
+        .container-card {
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            padding: 1.5rem; /* p-6 */
+        }
+        .overdue-row {
+            background-color: #fee2e2; /* Red-100 */
+            color: #ef4444; /* Red-500 */
+            font-weight: 500; /* font-medium */
+        }
+        /* Style for toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 90%;
+            width: 300px;
+        }
+        .toast {
+            background-color: #333;
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            text-align: center;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .toast.success { background-color: #10b981; } /* Green-500 */
+        .toast.error { background-color: #ef4444; } /* Red-500 */
+        .toast.info { background-color: #3b82f6; } /* Blue-500 */
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md">
+            <h1 class="text-3xl font-bold text-blue-700 mb-4 md:mb-0">לוח בקרה לניהול מכולות</h1>
+            <div class="flex flex-wrap gap-3">
+                <button id="newOrderBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200" aria-label="הזמנה חדשה">
+                    + הזמנה חדשה
+                </button>
+                <button id="refreshBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200" aria-label="רענן נתונים">
+                    רענן
+                </button>
+            </div>
+        </header>
+
+        <!-- Search and Filter Section -->
+        <div class="container-card mb-6">
+            <h2 class="text-xl font-semibold mb-4">חיפוש וסינון</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="searchQuery" class="block text-gray-700 text-sm font-bold mb-2">חיפוש חופשי (לקוח/סוכן/תעודה)</label>
+                    <input type="text" id="searchQuery" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="הקלד לחיפוש...">
+                </div>
+                <div>
+                    <label for="actionTypeFilter" class="block text-gray-700 text-sm font-bold mb-2">סינון לפי סוג פעולה</label>
+                    <select id="actionTypeFilter" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">כל סוגי הפעולה</option>
+                        <option value="הורדה">הורדה</option>
+                        <option value="החלפה">החלפה</option>
+                        <option value="איסוף">איסוף</option>
+                        <option value="אחר">אחר</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="maxOpenDaysFilter" class="block text-gray-700 text-sm font-bold mb-2">ימים שעברו (מקסימום)</label>
+                    <input type="number" id="maxOpenDaysFilter" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="לדוגמה: 10">
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Cards Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="container-card text-center">
+                <p class="text-sm text-gray-500 mb-1">סה"כ פתוחות (הורדה/החלפה)</p>
+                <p id="kpiTotalOpen" class="text-3xl font-bold text-blue-600">0</p>
+            </div>
+            <div class="container-card text-center">
+                <p class="text-sm text-gray-500 mb-1">חריגות (> 10 ימים)</p>
+                <p id="kpiOverdue" class="text-3xl font-bold text-red-600">0</p>
+            </div>
+            <div class="container-card text-center">
+                <p class="text-sm text-gray-500 mb-1">פעולות איסוף היום</p>
+                <p id="kpiCollectedToday" class="text-3xl font-bold text-green-600">0</p>
+            </div>
+            <div class="container-card text-center">
+                <p class="text-sm text-gray-500 mb-1">ממוצע ימים שעברו (לפתוחות)</p>
+                <p id="kpiAvgOpenDays" class="text-3xl font-bold text-purple-600">0.0</p>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="container-card">
+                <h2 class="text-xl font-semibold mb-4">התפלגות סוגי פעולה</h2>
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="container-card">
+                <h2 class="text-xl font-semibold mb-4">היסטוגרמת ימים שעברו</h2>
+                <canvas id="openDaysChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Orders Table Section -->
+        <div class="container-card overflow-x-auto">
+            <h2 class="text-xl font-semibold mb-4">הזמנות קיימות</h2>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">תעודה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">שם לקוח</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">שם סוכן</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מתאריך</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">סוג פעולה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ימים שעברו</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מס" מכולה ירדה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מס" מכולה עלתה</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ימים שעברו (עלתה)</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">פעולות</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Data will be loaded here -->
+                    <tr>
+                        <td colspan="10" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                            טוען נתונים...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Order -->
+    <div id="orderModalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-2xl font-bold">הזמנה חדשה</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl font-bold" aria-label="סגור חלון">
+                    &times;
+                </button>
+            </div>
+            <form id="orderForm">
+                <input type="hidden" id="orderDocumentId"> <!-- Changed from orderId to avoid confusion with sheet's 'תעודה' -->
+                <div class="mb-4">
+                    <label for="documentId" class="block text-gray-700 text-sm font-bold mb-2">תעודה (מזהה ייחודי)</label>
+                    <input type="text" id="documentId" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="customerName" class="block text-gray-700 text-sm font-bold mb-2">שם לקוח <span class="text-red-500">*</span></label>
+                    <input type="text" id="customerName" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="agentName" class="block text-gray-700 text-sm font-bold mb-2">שם סוכן</label>
+                    <input type="text" id="agentName" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="startDate" class="block text-gray-700 text-sm font-bold mb-2">מתאריך <span class="text-red-500">*</span></label>
+                    <input type="date" id="startDate" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="actionType" class="block text-gray-700 text-sm font-bold mb-2">סוג פעולה</label>
+                    <select id="actionType" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="הורדה">הורדה</option>
+                        <option value="החלפה">החלפה</option>
+                        <option value="איסוף">איסוף</option>
+                        <option value="אחר">אחר</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="containerDown" class="block text-gray-700 text-sm font-bold mb-2">מס" מכולה ירדה</label>
+                    <input type="text" id="containerDown" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="containerUp" class="block text-gray-700 text-sm font-bold mb-2">מס" מכולה עלתה</label>
+                    <input type="text" id="containerUp" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-6">
+                    <label for="daysPassedUp" class="block text-gray-700 text-sm font-bold mb-2">ימים שעברו (עלתה)</label>
+                    <input type="number" id="daysPassedUp" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200">
+                        שמור הזמנה
+                    </button>
+                    <button type="button" id="cancelModalBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200">
+                        ביטול
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        // API Base URL - REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
+        const API_BASE = "https://script.google.com/macros/s/AKfycbx7E0OrpJc7Yq4xhFTj376xVMo9VfvhLAjDZ6zdt8QGzXvlzKkANZxn4cV5AfvDPQ0m/exec"; // Example: https://script.google.com/macros/s/AKfycbz_YOUR_SCRIPT_ID/exec
+        const API_TOKEN = ""; // Optional: Set a token if you enabled security in Code.gs
+
+        let allContainersData = []; // Stores the raw data from the server
+        let filteredContainersData = []; // Stores data after applying filters
+
+        // Chart instances
+        let statusDistributionChart;
+        let openDaysHistogramChart;
+
+        // Define which 'סוג פעולה' values are considered 'open'
+        const OPEN_ACTION_TYPES = ['הורדה', 'החלפה'];
+
+        // --- Utility Functions ---
+
+        /**
+         * Displays a toast notification.
+         * @param {string} message - The message to display.
+         * @param {'success'|'error'|'info'} type - Type of toast for styling.
+         */
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.classList.add('toast', type);
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+
+            // Show toast
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+
+            // Hide and remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        /**
+         * Converts an ISO date string (yyyy-MM-dd) to a Hebrew localized string.
+         * @param {string} isoDateString - The date string in 'yyyy-MM-dd' format.
+         * @returns {string} The date formatted as 'DD/MM/YYYY' (e.g., '01/08/2025').
+         */
+        function formatDateToHebrew(isoDateString) {
+            if (!isoDateString) return '';
+            try {
+                const date = new Date(isoDateString);
+                // Ensure the date is valid before formatting
+                if (isNaN(date.getTime())) {
+                    console.warn('Invalid date string for formatting:', isoDateString);
+                    return isoDateString; // Return original if invalid
+                }
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            } catch (error) {
+                console.error("Error formatting date:", error);
+                return isoDateString; // Fallback
+            }
+        }
+
+        /**
+         * Returns the number of 'ימים שעברו' from the container object.
+         * @param {Object} container - The container object.
+         * @returns {number} The number of days passed, or 0 if not available/invalid.
+         */
+        function getDaysPassed(container) {
+            const days = parseInt(container['ימים שעברו']);
+            return isNaN(days) ? 0 : days;
+        }
+        
+        /**
+         * Returns the number of 'ימים שעברו (עלתה)' from the container object.
+         * @param {Object} container - The container object.
+         * @returns {number} The number of days passed up, or 0 if not available/invalid.
+         */
+        function getDaysPassedUp(container) {
+            const days = parseInt(container['ימים שעברו (עלתה)']);
+            return isNaN(days) ? 0 : days;
+        }
+
+        /**
+         * Calculates KPIs and updates the UI.
+         */
+        function renderKPIs() {
+            const totalOpen = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה'])).length;
+            
+            const overdue = filteredContainersData.filter(c => 
+                OPEN_ACTION_TYPES.includes(c['סוג פעולה']) && getDaysPassed(c) > 10
+            ).length;
+            
+            // Assuming 'איסוף' type with 'ימים שעברו (עלתה)' close to 0 indicates collection today
+            const collectedToday = filteredContainersData.filter(c => {
+                return c['סוג פעולה'] === 'איסוף' && getDaysPassedUp(c) <= 1; // Collected today or yesterday (recently)
+            }).length;
+
+            const openContainers = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה']));
+            const totalOpenDays = openContainers.reduce((sum, c) => sum + getDaysPassed(c), 0);
+            const avgOpenDays = openContainers.length > 0 ? (totalOpenDays / openContainers.length).toFixed(1) : '0.0';
+
+            document.getElementById('kpiTotalOpen').textContent = totalOpen;
+            document.getElementById('kpiOverdue').textContent = overdue;
+            document.getElementById('kpiCollectedToday').textContent = collectedToday;
+            document.getElementById('kpiAvgOpenDays').textContent = avgOpenDays;
+
+            if (overdue > 0) {
+                showToast(`קיימות ${overdue} מכולות חריגות (> 10 ימים).`, 'error');
+            }
+        }
+
+        /**
+         * Renders the Chart.js charts.
+         */
+        function renderCharts() {
+            // Action Type Distribution Chart (Donut)
+            const actionTypeCounts = filteredContainersData.reduce((acc, c) => {
+                acc[c['סוג פעולה']] = (acc[c['סוג פעולה']] || 0) + 1;
+                return acc;
+            }, {});
+
+            const actionTypeLabels = Object.keys(actionTypeCounts);
+            const actionTypeData = Object.values(actionTypeCounts);
+            const actionTypeColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']; // Blue, Green, Yellow, Red, Gray
+
+            if (statusDistributionChart) {
+                statusDistributionChart.destroy();
+            }
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            statusDistributionChart = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: actionTypeLabels,
+                    datasets: [{
+                        data: actionTypeData,
+                        backgroundColor: actionTypeColors.slice(0, actionTypeLabels.length),
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: 'Rubik'
+                                }
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Days Passed Histogram Chart (Bar) for 'open' containers
+            const openContainers = filteredContainersData.filter(c => OPEN_ACTION_TYPES.includes(c['סוג פעולה']));
+            const daysPassed = openContainers.map(c => getDaysPassed(c));
+
+            // Create bins for histogram (e.g., 0-5, 6-10, 11-15, >15)
+            const bins = {
+                '0-5 ימים': 0,
+                '6-10 ימים': 0,
+                '11-15 ימים': 0,
+                '16-20 ימים': 0,
+                'מעל 20 ימים': 0
+            };
+            daysPassed.forEach(days => {
+                if (days >= 0 && days <= 5) bins['0-5 ימים']++;
+                else if (days >= 6 && days <= 10) bins['6-10 ימים']++;
+                else if (days >= 11 && days <= 15) bins['11-15 ימים']++;
+                else if (days >= 16 && days <= 20) bins['16-20 ימים']++;
+                else if (days > 20) bins['מעל 20 ימים']++;
+            });
+
+            const histogramLabels = Object.keys(bins);
+            const histogramData = Object.values(bins);
+            const histogramColors = ['#22c55e', '#3b82f6', '#f59e0b', '#dc2626', '#b91c1c']; // Green, Blue, Yellow, Red, Darker Red
+
+            if (openDaysHistogramChart) {
+                openDaysHistogramChart.destroy();
+            }
+            const ctxOpenDays = document.getElementById('openDaysChart').getContext('2d');
+            openDaysHistogramChart = new Chart(ctxOpenDays, {
+                type: 'bar',
+                data: {
+                    labels: histogramLabels,
+                    datasets: [{
+                        label: 'מספר מכולות',
+                        data: histogramData,
+                        backgroundColor: histogramColors,
+                        borderColor: histogramColors.map(color => color.replace('500', '700')), // Darker border
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                font: {
+                                    family: 'Rubik'
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    family: 'Rubik'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        /**
+         * Renders the table with container data.
+         * @param {Array<Object>} data - The array of container objects to display.
+         */
+        function renderTable(data) {
+            const tableBody = document.getElementById('ordersTableBody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            if (data.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                            לא נמצאו הזמנות תואמות.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            data.forEach(container => {
+                const daysPassed = getDaysPassed(container);
+                const isOverdue = OPEN_ACTION_TYPES.includes(container['סוג פעולה']) && daysPassed > 10;
+                const rowClass = isOverdue ? 'overdue-row' : 'hover:bg-gray-50';
+
+                const row = document.createElement('tr');
+                row.classList.add(rowClass);
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${container['תעודה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['שם לקוח'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['שם סוכן'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDateToHebrew(container['מתאריך'])}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['סוג פעולה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${isOverdue ? 'font-bold' : ''}">${daysPassed}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['מס" מכולה ירדה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${container['מס" מכולה עלתה'] || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${getDaysPassedUp(container)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                        <button class="text-indigo-600 hover:text-indigo-900 ml-2 edit-btn" data-id="${container['תעודה']}" aria-label="ערוך הזמנה">ערוך</button>
+                        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="${container['תעודה']}" aria-label="מחק הזמנה">מחק</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Add event listeners for edit/delete buttons
+            tableBody.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const id = event.target.dataset.id;
+                    const container = allContainersData.find(c => c['תעודה'] === id);
+                    if (container) {
+                        showModal('edit', container);
+                    } else {
+                        showToast('הזמנה לא נמצאה לעריכה.', 'error');
+                    }
+                });
+            });
+
+            tableBody.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', async (event) => {
+                    const id = event.target.dataset.id;
+                    // Use a simple confirm dialog for now, or implement a custom modal
+                    if (confirm(`האם אתה בטוח שברצונך למחוק את הזמנה ID: ${id}?`)) {
+                        await apiDelete(id);
+                    }
+                });
+            });
+        }
+
+        /**
+         * Applies filters to the allContainersData and updates the UI.
+         */
+        function applyFilters() {
+            const query = document.getElementById('searchQuery').value.toLowerCase();
+            const actionType = document.getElementById('actionTypeFilter').value;
+            const maxDaysPassed = parseInt(document.getElementById('maxOpenDaysFilter').value);
+
+            filteredContainersData = allContainersData.filter(container => {
+                // Free text search
+                const matchesSearch = query === '' ||
+                    (container['שם לקוח'] || '').toLowerCase().includes(query) ||
+                    (container['שם סוכן'] || '').toLowerCase().includes(query) ||
+                    (container['תעודה'] || '').toLowerCase().includes(query);
+
+                // Action Type filter
+                const matchesActionType = actionType === '' || container['סוג פעולה'] === actionType;
+
+                // Max days passed filter (applies to 'open' containers based on 'ימים שעברו')
+                const daysPassed = getDaysPassed(container);
+                const matchesMaxDaysPassed = isNaN(maxDaysPassed) || daysPassed <= maxDaysPassed;
+
+                return matchesSearch && matchesActionType && matchesMaxDaysPassed;
+            });
+
+            renderKPIs();
+            renderCharts();
+            renderTable(filteredContainersData);
+        }
+
+        // --- API Functions ---
+
+        /**
+         * Fetches data from the Apps Script Web App.
+         * @returns {Promise<Array<Object>>} A promise that resolves to an array of container objects.
+         */
+        async function apiList() {
+            showToast('טוען נתונים...', 'info');
+            try {
+                const url = new URL(API_BASE);
+                url.searchParams.append('action', 'list');
+                if (API_TOKEN) {
+                    url.searchParams.append('token', API_TOKEN);
+                }
+
+                const response = await fetch(url.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('נתונים נטענו בהצלחה!', 'success');
+                    return result.data;
+                } else {
+                    showToast(`שגיאה בטעינת נתונים: ${result.message}`, 'error');
+                    return [];
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        /**
+         * Adds a new container record.
+         * @param {Object} data - The container data.
+         * @returns {Promise<boolean>} True if successful, false otherwise.
+         */
+        async function apiAdd(data) {
+            showToast('מוסיף הזמנה חדשה...', 'info');
+            try {
+                const body = new URLSearchParams();
+                body.append('action', 'add');
+                body.append('data', JSON.stringify(data));
+                if (API_TOKEN) {
+                    body.append('token', API_TOKEN);
+                }
+
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: body.toString(),
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('הזמנה נוספה בהצלחה!', 'success');
+                    return true;
+                } else {
+                    showToast(`שגיאה בהוספת הזמנה: ${result.message}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error("Error adding data:", error);
+                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        /**
+         * Updates an existing container record.
+         * @param {Object} data - The container data including תעודה.
+         * @returns {Promise<boolean>} True if successful, false otherwise.
+         */
+        async function apiUpdate(data) {
+            showToast('מעדכן הזמנה...', 'info');
+            try {
+                const body = new URLSearchParams();
+                body.append('action', 'update');
+                body.append('data', JSON.stringify(data));
+                if (API_TOKEN) {
+                    body.append('token', API_TOKEN);
+                }
+
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: body.toString(),
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('הזמנה עודכנה בהצלחה!', 'success');
+                    return true;
+                } else {
+                    showToast(`שגיאה בעדכון הזמנה: ${result.message}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error("Error updating data:", error);
+                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        /**
+         * Deletes a container record.
+         * @param {string} id - The תעודה of the container to delete.
+         * @returns {Promise<boolean>} True if successful, false otherwise.
+         */
+        async function apiDelete(id) {
+            showToast('מוחק הזמנה...', 'info');
+            try {
+                const body = new URLSearchParams();
+                body.append('action', 'delete');
+                body.append('id', id);
+                if (API_TOKEN) {
+                    body.append('token', API_TOKEN);
+                }
+
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: body.toString(),
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('הזמנה נמחקה בהצלחה!', 'success');
+                    // Refresh data after successful delete
+                    await initApp();
+                    return true;
+                } else {
+                    showToast(`שגיאה במחיקת הזמנה: ${result.message}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error("Error deleting data:", error);
+                showToast(`שגיאת תקשורת: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // --- Modal Logic ---
+
+        const orderModalOverlay = document.getElementById('orderModalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const orderForm = document.getElementById('orderForm');
+        const orderDocumentIdField = document.getElementById('orderDocumentId'); // Hidden field for actual document ID
+        const documentIdField = document.getElementById('documentId'); // Input field for user to see/edit 'תעודה'
+        const customerNameField = document.getElementById('customerName');
+        const agentNameField = document.getElementById('agentName');
+        const startDateField = document.getElementById('startDate');
+        const actionTypeField = document.getElementById('actionType');
+        const containerDownField = document.getElementById('containerDown');
+        const containerUpField = document.getElementById('containerUp');
+        const daysPassedUpField = document.getElementById('daysPassedUp');
+
+        /**
+         * Shows the add/edit modal and populates fields if in edit mode.
+         * @param {'add'|'edit'} mode - The mode of the modal.
+         * @param {Object} [data] - The container object if in edit mode.
+         */
+        function showModal(mode, data = {}) {
+            orderForm.reset(); // Clear form
+            orderDocumentIdField.value = ''; // Clear ID for add mode
+            documentIdField.readOnly = false; // Allow editing document ID for new entry, or disable for existing
+
+            if (mode === 'add') {
+                modalTitle.textContent = 'הזמנה חדשה';
+                actionTypeField.value = 'הורדה'; // Default action type for new
+                startDateField.valueAsDate = new Date(); // Default to today
+            } else if (mode === 'edit') {
+                modalTitle.textContent = `ערוך הזמנה: ${data['תעודה']}`;
+                orderDocumentIdField.value = data['תעודה']; // Store 'תעודה' in hidden field for API calls
+                documentIdField.value = data['תעודה'] || '';
+                documentIdField.readOnly = true; // Prevent editing document ID for existing entry
+
+                customerNameField.value = data['שם לקוח'] || '';
+                agentNameField.value = data['שם סוכן'] || '';
+                startDateField.value = data['מתאריך'] || ''; // ISO format
+                actionTypeField.value = data['סוג פעולה'] || 'הורדה';
+                containerDownField.value = data['מס" מכולה ירדה'] || '';
+                containerUpField.value = data['מס" מכולה עלתה'] || '';
+                daysPassedUpField.value = data['ימים שעברו (עלתה)'] || '';
+            }
+            orderModalOverlay.classList.add('show');
+        }
+
+        /**
+         * Closes the add/edit modal.
+         */
+        function closeModal() {
+            orderModalOverlay.classList.remove('show');
+        }
+
+        /**
+         * Handles the form submission for adding or editing a container.
+         * @param {Event} event - The form submission event.
+         */
+        async function saveContainer(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const containerData = {
+                'תעודה': documentIdField.value.trim(), // Use input field for 'תעודה'
+                'שם לקוח': customerNameField.value.trim(),
+                'שם סוכן': agentNameField.value.trim(),
+                'מתאריך': startDateField.value, // Already ISO format from type="date"
+                'סוג פעולה': actionTypeField.value,
+                'מס" מכולה ירדה': containerDownField.value.trim(),
+                'מס" מכולה עלתה': containerUpField.value.trim(),
+                'ימים שעברו (עלתה)': daysPassedUpField.value.trim()
+            };
+
+            // Basic validation
+            if (!containerData['שם לקוח'] || !containerData['מתאריך']) {
+                showToast('שדות "שם לקוח" ו"מתאריך" הם חובה.', 'error');
+                return;
+            }
+
+            const isEdit = !!orderDocumentIdField.value; // Check hidden field for existing document ID
+            let success;
+
+            if (isEdit) {
+                // For edit, ensure the 'תעודה' from the original record is used for update
+                containerData['תעודה'] = orderDocumentIdField.value;
+                success = await apiUpdate(containerData);
+            } else {
+                // For add, 'תעודה' might be empty, server will generate if needed
+                success = await apiAdd(containerData);
+            }
+
+            if (success) {
+                closeModal();
+                await initApp(); // Refresh data after save
+            }
+        }
+
+        // --- Event Listeners ---
+
+        document.getElementById('newOrderBtn').addEventListener('click', () => showModal('add'));
+        document.getElementById('refreshBtn').addEventListener('click', initApp);
+        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+        document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+        document.getElementById('orderForm').addEventListener('submit', saveContainer);
+
+        document.getElementById('searchQuery').addEventListener('input', applyFilters);
+        document.getElementById('actionTypeFilter').addEventListener('change', applyFilters);
+        document.getElementById('maxOpenDaysFilter').addEventListener('input', applyFilters);
+
+        // Close modal when clicking outside content
+        orderModalOverlay.addEventListener('click', (event) => {
+            if (event.target === orderModalOverlay) {
+                closeModal();
+            }
+        });
+
+        // --- Initialization ---
+
+        /**
+         * Initializes the application by fetching data and rendering the UI.
+         */
+        async function initApp() {
+            allContainersData = await apiList();
+            applyFilters(); // Apply initial filters and render UI
+        }
+
+        // Run the app initialization when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
