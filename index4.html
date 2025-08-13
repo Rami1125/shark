@@ -477,10 +477,18 @@
     let daysChartInstance = null;
     let stuckContainersGlobal = new Set(); // Global set for stuck containers
 
-    // Define the required fields for a row to be displayed (A1:I1 equivalent)
+    // Define the required fields for a row to be displayed (A1:I1 equivalent, based on new image)
     const REQUIRED_FIELDS_FOR_DISPLAY = [
-        'תעודה', 'שם לקוח', 'שם סוכן', 'כתובת', 'מתאריך', 'סוג פעולה', 
-        'ימים שעברו', 'מס" מכולה ירדה', 'מס" מכולה עלתה', 'ימים שעברו (עלתה)'
+        'תעודה', // B
+        'שם לקוח', // D
+        'שם סוכן', // C
+        'כתובת', // E
+        'מתאריך', // A
+        'סוג פעולה', // F
+        'ימים שעברו', // G
+        'מס" מכולה ירדה', // H
+        'מס" מכולה עלתה', // I
+        'ימים שעברו (עלתה)' // J
     ];
 
     // Initialize the page
@@ -520,7 +528,15 @@
     function formatDate(isoString) {
       if (!isoString) return '-';
       try {
-        const date = new Date(isoString);
+        // Attempt to parse as a number first, then as a date string
+        const numValue = Number(isoString);
+        let date;
+        if (!isNaN(numValue) && numValue > 0) { // Google Sheets date number (days since 1899-12-30)
+            date = new Date((numValue - 25569) * 86400 * 1000); // Convert to JS date (25569 is diff between 1970-01-01 and 1899-12-30)
+        } else { // Assume it's an ISO string or similar date string
+            date = new Date(isoString);
+        }
+        
         if (isNaN(date.getTime())) { // Check for invalid date
           return isoString; // Return original if invalid
         }
@@ -543,14 +559,16 @@
         orders.forEach(o => {
             const containerDown = String(o['מס" מכולה ירדה'] || '').trim();
             const containerUp = String(o['מס" מכולה עלתה'] || '').trim();
-            const actionType = o['סוג פעולה'];
+            const actionType = String(o['סוג פעולה'] || '').trim(); // Ensure actionType is a string and trimmed
 
+            // Track all containers that have ever gone down
             if (containerDown && containerDown !== '0') {
                 if (!containersDownRecords.has(containerDown)) {
                     containersDownRecords.set(containerDown, []);
                 }
                 containersDownRecords.get(containerDown).push({order: o, actionType: actionType});
             }
+            // Track all containers that have ever gone up
             if (containerUp && containerUp !== '0') {
                 containersUpSet.add(containerUp);
             }
@@ -607,7 +625,7 @@
     // Populate action filter dropdown
     function populateActionFilter() {
       const select = document.getElementById('actionFilter');
-      // FIX: Correctly extract 'סוג פעולה' for the filter options
+      // FIX: Correctly extract 'סוג פעולה' for the filter options, based on column F
       const actions = [...new Set(allOrders.map(o => o['סוג פעולה']).filter(a => a && String(a).trim() !== ''))];
       select.innerHTML = '<option value="">כל סוגי הפעולה</option>';
       actions.forEach(a => {
@@ -635,13 +653,13 @@
             if (o.closed) return false;
 
             // Apply search filters
-            const matchesSearch = (o['שם לקוח']?.toLowerCase().includes(searchTerm) ||
-                                 o['שם סוכן']?.toLowerCase().includes(searchTerm) ||
-                                 o['תעודה']?.toLowerCase().includes(searchTerm) ||
-                                 o['כתובת']?.toLowerCase().includes(searchTerm));
+            const matchesSearch = (String(o['שם לקוח'] || '').toLowerCase().includes(searchTerm) ||
+                                 String(o['שם סוכן'] || '').toLowerCase().includes(searchTerm) ||
+                                 String(o['תעודה'] || '').toLowerCase().includes(searchTerm) ||
+                                 String(o['כתובת'] || '').toLowerCase().includes(searchTerm));
 
             // Apply action type filter
-            const matchesAction = actionFilterValue ? (o['סוג פעולה'] === actionFilterValue) : true;
+            const matchesAction = actionFilterValue ? (String(o['סוג פעולה'] || '') === actionFilterValue) : true;
             
             // Apply days max filter
             const matchesDays = parseInt(o['ימים שעברו'] || 0) <= daysMax;
@@ -679,16 +697,17 @@
         // Check for row completeness first (A1:I1 logic, now including Address)
         const isRowComplete = REQUIRED_FIELDS_FOR_DISPLAY.every(field => {
             const value = o[field];
+            // Ensure values are not null/undefined and not empty strings after trimming
             return value !== null && value !== undefined && String(value).trim() !== '';
         });
         if (!isRowComplete) return false; // Skip incomplete rows
 
         // Now apply search/filter for visibility in the table
-        const matchesSearch = (o['שם לקוח']?.toLowerCase().includes(searchTerm) ||
-                             o['שם סוכן']?.toLowerCase().includes(searchTerm) ||
-                             o['תעודה']?.toLowerCase().includes(searchTerm) ||
-                             o['כתובת']?.toLowerCase().includes(searchTerm));
-        const matchesAction = actionFilterValue ? (o['סוג פעולה'] === actionFilterValue) : true;
+        const matchesSearch = (String(o['שם לקוח'] || '').toLowerCase().includes(searchTerm) ||
+                             String(o['שם סוכן'] || '').toLowerCase().includes(searchTerm) ||
+                             String(o['תעודה'] || '').toLowerCase().includes(searchTerm) ||
+                             String(o['כתובת'] || '').toLowerCase().includes(searchTerm));
+        const matchesAction = actionFilterValue ? (String(o['סוג פעולה'] || '') === actionFilterValue) : true;
         const matchesDays = parseInt(o['ימים שעברו'] || 0) <= daysMax;
 
         // If the order is closed, we still display it but it might not pass *active* filters for other purposes
@@ -730,8 +749,9 @@
         let flashingEmojiHtml = '';
 
         // Add flashing emoji only if it's genuinely stuck AND not an 'הוצאה' or 'פינוי במקום' action
+        // This check is duplicated from identifyStuckContainers to ensure consistency in UI
         if (stuckContainersGlobal.has(containerDownNum) && 
-            o['סוג פעולה'] !== 'הוצאה' && o['סוג פעולה'] !== 'פינוי במקום') {
+            String(o['סוג פעולה'] || '').trim() !== 'הוצאה' && String(o['סוג פעולה'] || '').trim() !== 'פינוי במקום') {
             flashingEmojiHtml = '<span class="flashing-emoji">💡</span>'; 
         }
 
@@ -817,7 +837,10 @@
       const counts = {};
       
       orders.forEach(o => { 
-        counts[o['סוג פעולה']] = (counts[o['סוג פעולה']] || 0) + 1; 
+        const action = String(o['סוג פעולה'] || '').trim(); // Ensure action is string and trimmed
+        if (action) { // Only count if action is not empty
+            counts[action] = (counts[action] || 0) + 1; 
+        }
       });
       
       const backgroundColors = generateColors(Object.keys(counts).length, 0.7);
