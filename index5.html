@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>לוח בקרה לניהול מכולות — גרסת פרו (עם דיאגנוסטיקה ובדיקות)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+              400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+              800: '#3730a3', 900: '#312e81'
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 30px -10px rgba(0,0,0,.15)'
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Icons -->
+  <link href="https://unpkg.com/lucide-static@latest/font/lucide.css" rel="stylesheet" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    html, body { background: linear-gradient(180deg, #f5f7fb 0%, #eef2ff 100%); }
+    * { scroll-behavior: smooth; }
+    .callout { border-inline-start: 4px solid #f59e0b; background: #fff7ed; }
+    .callout-error { border-inline-start-color: #ef4444; background: #fef2f2; }
+  </style>
+</head>
+<body class="min-h-screen text-gray-800">
+  <!-- Toast / Alerts -->
+  <div id="toast" class="fixed top-3 inset-x-3 z-[70] hidden"></div>
+
+  <!-- Topbar -->
+  <header class="sticky top-0 z-50 backdrop-blur bg-white/80 border-b border-white/60 shadow-soft">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+      <button id="openFiltersBtn" class="md:hidden p-2 rounded-xl border bg-white hover:bg-gray-50" title="מסנן">
+        <i class="lucide-filter"></i>
+      </button>
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-2xl bg-primary-600 text-white grid place-items-center shadow-soft">מ</div>
+        <h1 class="text-lg sm:text-xl font-semibold">לוח בקרה לניהול מכולות — פרו</h1>
+      </div>
+      <div class="ms-auto flex items-center gap-2">
+        <label class="flex items-center gap-2 text-sm bg-white/80 border rounded-2xl px-2 py-1" title="מצב דמו — טען נתוני בדיקה מקומיים">
+          <input id="demoToggle" type="checkbox" class="accent-primary-600">
+          מצב דמו
+        </label>
+        <button id="newOrderBtn" class="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-primary-600 text-white hover:bg-primary-700 shadow-soft">
+          <i class="lucide-plus"></i>
+          הזמנה חדשה
+        </button>
+        <button id="refreshBtn" class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl border bg-white hover:bg-gray-50">
+          <i class="lucide-rotate-cw"></i>
+          רענן
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content Wrapper -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Filters Bar -->
+    <section class="grid grid-cols-1 md:grid-cols-12 gap-4">
+      <!-- Filters Panel -->
+      <aside id="filtersPanel" class="md:col-span-3 bg-white/80 backdrop-blur border border-white/70 rounded-2xl p-4 shadow-soft md:sticky md:top-[76px] hidden md:block">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">מסננים</h2>
+          <button id="closeFiltersBtn" class="md:hidden p-2 rounded-xl border bg-white hover:bg-gray-50"><i class="lucide-x"></i></button>
+        </div>
+        <div class="space-y-3">
+          <label class="block">
+            <span class="text-sm text-gray-600">חיפוש כללי</span>
+            <input id="searchInput" type="search" placeholder="לקוח, סוכן, תעודה…" class="mt-1 w-full rounded-xl border-gray-200 focus:border-primary-500 focus:ring-primary-500" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-gray-600">סוג פעולה</span>
+            <select id="actionFilter" class="mt-1 w-full rounded-xl border-gray-200 focus:border-primary-500 focus:ring-primary-500">
+              <option value="">כל סוגי הפעולה</option>
+            </select>
+          </label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="block">
+              <span class="text-sm text-gray-600">ימים (מקס׳)</span>
+              <input id="daysMax" type="number" min="0" placeholder="לדוג׳ 10" class="mt-1 w-full rounded-xl border-gray-200 focus:border-primary-500 focus:ring-primary-500" />
+            </label>
+            <label class="block">
+              <span class="text-sm text-gray-600">מתאריך</span>
+              <input id="dateFrom" type="date" class="mt-1 w-full rounded-xl border-gray-200 focus:border-primary-500 focus:ring-primary-500" />
+            </label>
+          </div>
+          <label class="block">
+            <span class="text-sm text-gray-600">עד תאריך</span>
+            <input id="dateTo" type="date" class="mt-1 w-full rounded-xl border-gray-200 focus:border-primary-500 focus:ring-primary-500" />
+          </label>
+          <div class="flex gap-2 pt-2">
+            <button id="clearFiltersBtn" class="flex-1 px-3 py-2 rounded-xl border bg-white hover:bg-gray-50">נקה</button>
+            <button id="exportBtn" class="flex-1 px-3 py-2 rounded-xl border bg-white hover:bg-gray-50">ייצוא CSV</button>
+          </div>
+        </div>
+        <hr class="my-4">
+        <div class="space-y-2">
+          <h3 class="font-semibold text-sm">הגדרות</h3>
+          <label class="block text-sm">API URL (Apps Script)
+            <input id="scriptUrlInput" type="url" placeholder="https://script.google.com/macros/s/DEPLOYMENT_ID/exec" class="mt-1 w-full rounded-xl border-gray-200 focus:border-primary-500 focus:ring-primary-500" />
+          </label>
+          <button id="saveScriptUrl" class="mt-2 w-full px-3 py-2 rounded-xl bg-primary-600 text-white hover:bg-primary-700">שמירת כתובת</button>
+          <button id="diagBtn" class="mt-2 w-full px-3 py-2 rounded-2xl border">בדיקת חיבור</button>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <section class="md:col-span-9 space-y-4">
+        <!-- Diagnostics callout (hidden by default) -->
+        <div id="netCallout" class="hidden callout rounded-2xl p-3 text-sm"></div>
+
+        <!-- Metrics -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <article class="rounded-2xl bg-white/80 backdrop-blur border border-white/70 p-4 shadow-soft">
+            <div class="text-sm text-gray-500">סה"כ פתוחות</div>
+            <div id="totalOpen" class="text-2xl font-bold">0</div>
+          </article>
+          <article class="rounded-2xl bg-white/80 backdrop-blur border border-white/70 p-4 shadow-soft">
+            <div class="text-sm text-gray-500">חריגות (&gt;10 ימים)</div>
+            <div id="overdue" class="text-2xl font-bold">0</div>
+          </article>
+          <article class="rounded-2xl bg-white/80 backdrop-blur border border-white/70 p-4 shadow-soft">
+            <div class="text-sm text-gray-500">פעולות היום</div>
+            <div id="todayActions" class="text-2xl font-bold">0</div>
+          </article>
+          <article class="rounded-2xl bg-white/80 backdrop-blur border border-white/70 p-4 shadow-soft">
+            <div class="text-sm text-gray-500">ממוצע ימים</div>
+            <div id="avgDays" class="text-2xl font-bold">0.0</div>
+          </article>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <canvas id="actionChart" class="rounded-2xl bg-white p-3 shadow-soft" height="200"></canvas>
+          <canvas id="daysChart" class="rounded-2xl bg-white p-3 shadow-soft" height="200"></canvas>
+        </div>
+
+        <!-- Table/Card View -->
+        <div class="rounded-2xl bg-white/90 border border-white/70 shadow-soft overflow-hidden">
+          <div class="flex items-center justify-between p-3 border-b">
+            <div class="font-semibold">הזמנות</div>
+            <div class="flex items-center gap-2">
+              <button id="toggleViewBtn" class="px-3 py-1.5 rounded-xl border bg-white hover:bg-gray-50">תצוגת כרטיסים</button>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div id="tableWrapper" class="overflow-x-auto">
+            <table id="ordersTable" class="min-w-full text-sm">
+              <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                  <th class="px-3 py-2 whitespace-nowrap">תעודה</th>
+                  <th class="px-3 py-2 whitespace-nowrap">שם לקוח</th>
+                  <th class="px-3 py-2 whitespace-nowrap">שם סוכן</th>
+                  <th class="px-3 py-2 whitespace-nowrap">מתאריך</th>
+                  <th class="px-3 py-2 whitespace-nowrap">סוג פעולה</th>
+                  <th class="px-3 py-2 whitespace-nowrap">ימים שעברו</th>
+                  <th class="px-3 py-2 whitespace-nowrap">מס" מכולה ירדה</th>
+                  <th class="px-3 py-2 whitespace-nowrap">מס" מכולה עלתה</th>
+                  <th class="px-3 py-2 whitespace-nowrap">ימים שעברו (עלתה)</th>
+                  <th class="px-3 py-2 whitespace-nowrap">פעולות</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y" id="ordersTbody">
+                <tr class="skeleton"><td colspan="10" class="px-3 py-4 text-center text-gray-400">טוען נתונים…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Cards (mobile) -->
+          <div id="cardsWrapper" class="hidden p-3 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- QA & Diagnostics -->
+        <div class="rounded-2xl bg-white/90 border border-white/70 shadow-soft p-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">QA · בדיקות יחידה</h3>
+            <div class="flex gap-2">
+              <button id="runTestsBtn" class="px-3 py-1.5 rounded-xl border">הרץ בדיקות</button>
+              <button id="loadDemoBtn" class="px-3 py-1.5 rounded-xl border">טען נתוני דמו</button>
+            </div>
+          </div>
+          <div id="testLog" class="mt-3 text-sm whitespace-pre-wrap"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Mobile Filters Drawer -->
+  <div id="drawer" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-black/20" id="drawerBackdrop"></div>
+    <div class="absolute start-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white p-4 shadow-soft">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold">מסננים</h2>
+        <button class="p-2 rounded-xl border bg-white hover:bg-gray-50" id="drawerClose"><i class="lucide-x"></i></button>
+      </div>
+      <div id="drawerContent" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button (mobile) -->
+  <button id="fabNew" class="fixed bottom-5 end-5 md:hidden rounded-full w-14 h-14 bg-primary-600 text-white shadow-soft grid place-items-center">
+    <i class="lucide-plus"></i>
+  </button>
+
+  <script>
+    // ====== CONFIG ======
+    const DEFAULT_SCRIPT_URL = localStorage.getItem('https://script.google.com/macros/s/AKfycbx7E0OrpJc7Yq4xhFTj376xVMo9VfvhLAjDZ6zdt8QGzXvlzKkANZxn4cV5AfvDPQ0m/exec') || 'https://script.google.com/macros/s/PASTE_YOUR_DEPLOYMENT/exec';
+    const DATE_LOCALE = 'he-IL';
+    const DEMO_MODE = localStorage.getItem('DEMO_MODE') === '1';
+
+    // ====== STATE ======
+    let allOrders = [];
+    let currentView = 'table'; // 'table' | 'cards'
+
+    // ====== ELEMENTS ======
+    const refreshBtn = document.getElementById('refreshBtn');
+    const searchInput = document.getElementById('searchInput');
+    const actionFilter = document.getElementById('actionFilter');
+    const daysMaxInput = document.getElementById('daysMax');
+    const dateFromInput = document.getElementById('dateFrom');
+    const dateToInput = document.getElementById('dateTo');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+    const ordersTbody = document.getElementById('ordersTbody');
+    const tableWrapper = document.getElementById('tableWrapper');
+    const cardsWrapper = document.getElementById('cardsWrapper');
+    const toggleViewBtn = document.getElementById('toggleViewBtn');
+
+    const scriptUrlInput = document.getElementById('scriptUrlInput');
+    const saveScriptUrlBtn = document.getElementById('saveScriptUrl');
+
+    const openFiltersBtn = document.getElementById('openFiltersBtn');
+    const filtersPanel = document.getElementById('filtersPanel');
+
+    const drawer = document.getElementById('drawer');
+    const drawerBackdrop = document.getElementById('drawerBackdrop');
+    const drawerClose = document.getElementById('drawerClose');
+    const drawerContent = document.getElementById('drawerContent');
+
+    const totalOpenEl = document.getElementById('totalOpen');
+    const overdueEl = document.getElementById('overdue');
+    const todayActionsEl = document.getElementById('todayActions');
+    const avgDaysEl = document.getElementById('avgDays');
+
+    const demoToggle = document.getElementById('demoToggle');
+    const netCallout = document.getElementById('netCallout');
+    const diagBtn = document.getElementById('diagBtn');
+    const runTestsBtn = document.getElementById('runTestsBtn');
+    const testLog = document.getElementById('testLog');
+    const loadDemoBtn = document.getElementById('loadDemoBtn');
+
+    let actionChartInstance = null;
+    let daysChartInstance = null;
+
+    // ====== HELPERS ======
+    function showToast(html, isError=false){
+      const t = document.getElementById('toast');
+      t.className = `fixed top-3 inset-x-3 z-[70] rounded-xl px-4 py-3 shadow-soft ${isError? 'callout-error' : 'callout'}`;
+      t.innerHTML = html;
+      t.classList.remove('hidden');
+      setTimeout(()=> t.classList.add('hidden'), 6000);
+    }
+
+    function getScriptUrl() {
+      return localStorage.getItem('SCRIPT_URL') || DEFAULT_SCRIPT_URL;
+    }
+    function setScriptUrl(url) {
+      localStorage.setItem('SCRIPT_URL', url);
+      scriptUrlInput.value = url;
+    }
+
+    function setDemoMode(on){
+      localStorage.setItem('DEMO_MODE', on ? '1' : '0');
+      demoToggle.checked = on;
+    }
+
+    function parseIntSafe(v) { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; }
+    function parseDateHeb(v) {
+      if (!v) return null;
+      if (/^\d{2}[\/.-]\d{2}[\/.-]\d{4}$/.test(v)) {
+        const parts = v.split(/[\/.-]/).map(Number);
+        const [d,m,y] = parts; return new Date(y, m-1, d);
+      }
+      const d = new Date(v); return isNaN(d.getTime()) ? null : d;
+    }
+
+    // CSV helpers (exposed for tests)
+    function buildCSV(rows){
+      if (!rows || !rows.length) return '';
+      const headers = Object.keys(rows[0]);
+      const esc = v => (v==null? '' : (''+v).replace(/"/g,'""'));
+      const lines = [headers.join(',')];
+      for(const r of rows){ lines.push(headers.map(h=>`"${esc(r[h])}"`).join(',')); }
+      return lines.join('\n');
+    }
+    function downloadCSV(filename, rows) {
+      const csv = buildCSV(rows);
+      const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob); link.download = filename; link.click();
+    }
+
+    function debounce(fn, ms=300){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); } }
+
+    function urlLooksLikeAppsScript(u){
+      try{ const {protocol, hostname, pathname} = new URL(u); return protocol.startsWith('http') && hostname.includes('script.google.com') && pathname.includes('/exec'); }catch{return false}
+    }
+
+    async function fetchWithTimeout(url, options={}, timeoutMs=10000){
+      const controller = new AbortController();
+      const id = setTimeout(()=>controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        return res;
+      } finally { clearTimeout(id); }
+    }
+
+    function diagMessage(msg, isError=false){
+      netCallout.classList.remove('hidden');
+      netCallout.className = `rounded-2xl p-3 text-sm ${isError? 'callout-error' : 'callout'}`;
+      netCallout.innerHTML = msg;
+    }
+
+    // ====== FETCH ======
+    async function fetchOrders() {
+      ordersTbody.innerHTML = '<tr><td colspan="10" class="px-3 py-4 text-center text-gray-400">טוען נתונים…</td></tr>';
+      const url = `${getScriptUrl()}?action=list`;
+      try {
+        // Quick validations to avoid common causes of "Failed to fetch"
+        if (location.protocol === 'https:' && url.startsWith('http:')) {
+          throw new Error('Mixed content: העמוד נטען ב-HTTPS אבל ה-API ב-HTTP. החלף ל-HTTPS.');
+        }
+        if (!/^https?:\/\//.test(url)) throw new Error('כתובת API לא תקינה.');
+
+        const res = await fetchWithTimeout(url, { method: 'GET', headers: { 'Accept': 'application/json' } }, 12000);
+        if (!res.ok) throw new Error(`שגיאת שרת/הרשאות (${res.status}) — ודא פריסת Web App עם Anyone with link`);
+
+        // Some CORS failures return opaque responses; guard json parse
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          throw new Error('התקבלה תשובה שאינה JSON. ודא שה-Apps Script מחזיר JSON וכותרות CORS.');
+        }
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.data)) throw new Error('מבנה נתונים לא תקין מה-API');
+        allOrders = data.data.map(normalizeOrderRecord);
+        populateActionFilter(allOrders);
+        filterAndRenderImmediate();
+        diagMessage('✅ חיבור ל-API תקין. נטענו ' + allOrders.length + ' רשומות.');
+      } catch (err) {
+        console.error(err);
+        const hint = [
+          '<div class="font-semibold mb-1">טעינת נתונים נכשלה</div>',
+          `<div class="mb-2">${err.message || 'שגיאה'}</div>`,
+          '<ul class="list-disc ps-6 text-sm">',
+          '<li>ודא שהדבקת כתובת <b>Web App (exec)</b> נכונה.</li>',
+          '<li>בפריסה — בחר <b>Anyone with the link</b>.</li>',
+          '<li>הוסף כותרות CORS ב-Apps Script (ראה למטה).</li>',
+          '<li>נסה מצב דמו כדי לבדוק את הממשק ללא API.</li>',
+          '</ul>'
+        ].join('');
+        diagMessage(hint, true);
+        ordersTbody.innerHTML = `<tr><td colspan="10" class="px-3 py-4 text-center text-red-600">${err.message}</td></tr>`;
+        showToast('שגיאת רשת: ' + (err.message || 'Failed to fetch') + '<br>הפעל מצב דמו או תקן את ההגדרות.', true);
+      }
+    }
+
+    function normalizeOrderRecord(o) {
+      return {
+        תעודה: o['תעודה'] ?? '',
+        'שם לקוח': o['שם לקוח'] ?? '',
+        'שם סוכן': o['שם סוכן'] ?? '',
+        מתאריך: o['מתאריך'] ?? '',
+        'סוג פעולה': o['סוג פעולה'] ?? '',
+        'ימים שעברו': parseIntSafe(o['ימים שעברו']),
+        'מס\" מכולה ירדה': o['מס\" מכולה ירדה'] ?? o['מס" מכולה ירדה'] ?? o['מס" מכולה ירדה'] ?? '',
+        'מס\" מכולה עלתה': o['מס\" מכולה עלתה'] ?? o['מס" מכולה עלתה'] ?? o['מס" מכולה עלתה'] ?? '',
+        'ימים שעברו (עלתה)': parseIntSafe(o['ימים שעברו (עלתה)'])
+      };
+    }
+
+    function populateActionFilter(list) {
+      const actions = [...new Set(list.map(o => o['סוג פעולה']).filter(Boolean))].sort();
+      actionFilter.innerHTML = '<option value="">כל סוגי הפעולה</option>' + actions.map(a => `<option value="${a}">${a}</option>`).join('');
+    }
+
+    // ====== FILTERING + RENDER ======
+    function computeFiltered(){
+      const term = (searchInput.value || '').toLowerCase().trim();
+      const action = actionFilter.value || '';
+      const daysMax = daysMaxInput.value ? parseInt(daysMaxInput.value,10) : Infinity;
+      const dFrom = parseDateHeb(dateFromInput.value);
+      const dTo = parseDateHeb(dateToInput.value);
+
+      return allOrders.filter(o => {
+        const matchesTerm = [o['שם לקוח'], o['שם סוכן'], o['תעודה']].some(v => (v||'').toLowerCase().includes(term));
+        const matchesAction = action ? o['סוג פעולה'] === action : true;
+        const matchesDays = o['ימים שעברו'] <= daysMax;
+        const d = parseDateHeb(o['מתאריך']);
+        const matchesDateFrom = dFrom ? (d && d >= dFrom) : true;
+        const matchesDateTo = dTo ? (d && d <= dTo) : true;
+        return matchesTerm && matchesAction && matchesDays && matchesDateFrom && matchesDateTo;
+      });
+    }
+
+    const filterAndRender = debounce(()=>{ renderEverything(computeFiltered()); }, 100);
+    function filterAndRenderImmediate(){ renderEverything(computeFiltered()); }
+
+    function renderEverything(orders){
+      renderTable(orders);
+      renderCards(orders);
+      updateMetrics(orders);
+      renderCharts(orders);
+    }
+
+    function renderTable(orders) {
+      if (!orders.length) {
+        ordersTbody.innerHTML = '<tr><td colspan="10" class="px-3 py-6 text-center text-gray-400">לא נמצאו הזמנות תואמות.</td></tr>';
+        return;
+      }
+      ordersTbody.innerHTML = orders.map(o => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2">${o['תעודה']}</td>
+          <td class="px-3 py-2">${o['שם לקוח']}</td>
+          <td class="px-3 py-2">${o['שם סוכן']}</td>
+          <td class="px-3 py-2">${o['מתאריך']}</td>
+          <td class="px-3 py-2">${o['סוג פעולה']}</td>
+          <td class="px-3 py-2">${o['ימים שעברו']}</td>
+          <td class="px-3 py-2">${o['מס\" מכולה ירדה']}</td>
+          <td class="px-3 py-2">${o['מס\" מכולה עלתה']}</td>
+          <td class="px-3 py-2">${o['ימים שעברו (עלתה)']}</td>
+          <td class="px-3 py-2">
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 rounded-lg border" onclick='alert("עריכה — בקרוב")'><i class="lucide-pencil"></i></button>
+              <button class="px-2 py-1 rounded-lg border" onclick='shareWhatsAppJSON("${JSON.stringifyObj(o)}")' title="שיתוף"><i class="lucide-send"></i></button>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    // Utility to safely stringify for inline onclick (avoid breaking quotes)
+    JSON.stringifyObj = (obj)=>JSON.stringify(obj).replace(/\"/g, '\\"').replace(/"/g, '&quot;');
+
+    function renderCards(orders){
+      if (!orders.length) {
+        cardsWrapper.innerHTML = '<div class="text-center text-gray-400 py-6">לא נמצאו הזמנות תואמות.</div>';
+        return;
+      }
+      cardsWrapper.innerHTML = orders.map(o => `
+        <article class="rounded-2xl border bg-white p-4 shadow-soft">
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-500">תעודה</div>
+            <div class="font-semibold">${o['תעודה']}</div>
+          </div>
+          <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <div class="text-gray-500">לקוח</div><div>${o['שם לקוח']}</div>
+            <div class="text-gray-500">סוכן</div><div>${o['שם סוכן']}</div>
+            <div class="text-gray-500">מתאריך</div><div>${o['מתאריך']}</div>
+            <div class="text-gray-500">סוג פעולה</div><div>${o['סוג פעולה']}</div>
+            <div class="text-gray-500">ימים שעברו</div><div>${o['ימים שעברו']}</div>
+          </div>
+          <div class="mt-3 flex items-center gap-2">
+            <button class="px-3 py-1.5 rounded-xl border" onclick='alert("עריכה — בקרוב")'>עריכה</button>
+            <button class="px-3 py-1.5 rounded-xl border" onclick='shareWhatsAppJSON("${JSON.stringifyObj(o)}")'>שיתוף</button>
+          </div>
+        </article>`).join('');
+    }
+
+    function shareWhatsAppJSON(jsonStr){
+      try { const o = JSON.parse(jsonStr.replace(/&quot;/g, '"')); shareWhatsApp(o); } catch(e) { console.error(e); }
+    }
+
+    function shareWhatsApp(o){
+      const msg = `שלום,\nפרטי הזמנה: ${o['תעודה']}\nלקוח: ${o['שם לקוח']}\nסוכן: ${o['שם סוכן']}\nפעולה: ${o['סוג פעולה']}\nתאריך: ${o['מתאריך']}\nימים: ${o['ימים שעברו']}`;
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+    }
+
+    function updateMetrics(orders){
+      const totalOpen = orders.length;
+      const overdue = orders.filter(o => (o['ימים שעברו']||0) > 10).length;
+      const todayStr = new Date().toLocaleDateString(DATE_LOCALE);
+      const today = orders.filter(o => (o['מתאריך'] === todayStr)).length; // ✅ כרגע סופר כל סוג פעולה
+      const avgDays = totalOpen ? (orders.reduce((s,o)=>s+(o['ימים שעברו']||0),0)/totalOpen).toFixed(1) : '0.0';
+
+      totalOpenEl.textContent = totalOpen;
+      overdueEl.textContent = overdue;
+      todayActionsEl.textContent = today;
+      avgDaysEl.textContent = avgDays;
+    }
+
+    function renderCharts(orders){
+      const counts = {};
+      orders.forEach(o => { const k = o['סוג פעולה']||'לא צוין'; counts[k] = (counts[k]||0)+1; });
+      const actionCtx = document.getElementById('actionChart').getContext('2d');
+      if (actionChartInstance) actionChartInstance.destroy();
+      actionChartInstance = new Chart(actionCtx, {
+        type: 'bar',
+        data: { labels: Object.keys(counts), datasets: [{ label: 'התפלגות סוגי פעולה', data: Object.values(counts) }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      const days = orders.map(o => o['ימים שעברו']||0).sort((a,b)=>a-b);
+      const daysCtx = document.getElementById('daysChart').getContext('2d');
+      if (daysChartInstance) daysChartInstance.destroy();
+      daysChartInstance = new Chart(daysCtx, {
+        type: 'bar',
+        data: { labels: days, datasets: [{ label: 'היסטוגרמת ימים שעברו', data: days }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // ====== DEMO DATA ======
+    const DEMO_DATA = [
+      { 'תעודה': 'INV-1001', 'שם לקוח': 'שקד בע"מ', 'שם סוכן': 'נועה', 'מתאריך': new Date().toLocaleDateString(DATE_LOCALE), 'סוג פעולה': 'איסוף', 'ימים שעברו': 2, 'מס" מכולה ירדה': 'C123', 'מס" מכולה עלתה': 'A789', 'ימים שעברו (עלתה)': 1 },
+      { 'תעודה': 'INV-1002', 'שם לקוח': 'אלון לוגיסטיקה', 'שם סוכן': 'איתי', 'מתאריך': '12/08/2025', 'סוג פעולה': 'מסירה', 'ימים שעברו': 11, 'מס" מכולה ירדה': 'C555', 'מס" מכולה עלתה': '', 'ימים שעברו (עלתה)': 0 },
+      { 'תעודה': 'INV-1003', 'שם לקוח': 'דקל', 'שם סוכן': 'דנה', 'מתאריך': '2025-08-01', 'סוג פעולה': 'איסוף', 'ימים שעברו': 6, 'מס" מכולה ירדה': '', 'מס" מכולה עלתה': 'A111', 'ימים שעברו (עלתה)': 5 }
+    ];
+
+    function loadDemoData(){
+      allOrders = DEMO_DATA.map(normalizeOrderRecord);
+      populateActionFilter(allOrders);
+      filterAndRenderImmediate();
+      diagMessage('🔄 נטענו נתוני דמו (מקומיים).');
+    }
+
+    // ====== TESTS ======
+    function runUnitTests(){
+      const logs = [];
+      const assert = (name, cond) => { logs.push(`${cond? '✅' : '❌'} ${name}`); };
+      const fmt = d => d ? d.toISOString().slice(0,10) : null;
+
+      // parseDateHeb
+      assert('parseDateHeb dd/mm/yyyy', fmt(parseDateHeb('13/08/2025')) === '2025-08-13');
+      assert('parseDateHeb yyyy-mm-dd', fmt(parseDateHeb('2025-08-13')) === '2025-08-13');
+      assert('parseDateHeb invalid -> null', parseDateHeb('32/13/2025') === null);
+
+      // normalizeOrderRecord (quote-variant keys)
+      const rec1 = normalizeOrderRecord({ 'תעודה':'1', 'שם לקוח':'א', 'שם סוכן':'ב', 'מתאריך':'2025-08-10', 'סוג פעולה':'איסוף', 'ימים שעברו':'7', 'מס" מכולה ירדה':'X' });
+      assert('normalizeOrderRecord numeric parse', rec1['ימים שעברו'] === 7);
+      assert('normalizeOrderRecord alt quote key', rec1['מס\" מכולה ירדה'] === 'X');
+
+      // buildCSV
+      const csv = buildCSV([{A: 'x', B: 'y,y', C: '"q"'}]);
+      assert('buildCSV has header', csv.startsWith('A,B,C'));
+      assert('buildCSV escapes quotes', csv.includes('""q""'));
+
+      // filter compute
+      allOrders = DEMO_DATA.map(normalizeOrderRecord);
+      searchInput.value = ''; actionFilter.value = 'איסוף'; daysMaxInput.value = ''; dateFromInput.value = ''; dateToInput.value = '';
+      const filtered = computeFiltered();
+      assert('computeFiltered by action', filtered.every(o => o['סוג פעולה'] === 'איסוף'));
+
+      testLog.textContent = logs.join('\n');
+      showToast('הבדיקות הסתיימו — ראה למטה את התוצאות.');
+    }
+
+    // ====== EVENTS ======
+    refreshBtn.addEventListener('click', () => DEMO_MODE || demoToggle.checked ? loadDemoData() : fetchOrders());
+    [searchInput, actionFilter, daysMaxInput, dateFromInput, dateToInput].forEach(el => el.addEventListener('input', filterAndRender));
+
+    clearFiltersBtn.addEventListener('click', () => {
+      searchInput.value = ''; actionFilter.value = ''; daysMaxInput.value = ''; dateFromInput.value = ''; dateToInput.value = '';
+      filterAndRenderImmediate();
+    });
+
+    exportBtn.addEventListener('click', () => {
+      const filtered = computeFiltered();
+      if (!filtered.length) return;
+      downloadCSV(`orders_${new Date().toISOString().slice(0,10)}.csv`, filtered);
+    });
+
+    toggleViewBtn.addEventListener('click', () => {
+      currentView = currentView === 'table' ? 'cards' : 'table';
+      tableWrapper.classList.toggle('hidden', currentView !== 'table');
+      cardsWrapper.classList.toggle('hidden', currentView !== 'cards');
+      toggleViewBtn.textContent = currentView === 'table' ? 'תצוגת כרטיסים' : 'תצוגת טבלה';
+    });
+
+    document.getElementById('fabNew').addEventListener('click', () => alert('הוספת הזמנה — בקרוב'));
+
+    // Script URL storage
+    scriptUrlInput.value = getScriptUrl();
+    saveScriptUrlBtn.addEventListener('click', () => {
+      const url = scriptUrlInput.value.trim();
+      if (!/^https?:\/\//.test(url)) { showToast('כתובת שגויה', true); return; }
+      if (!urlLooksLikeAppsScript(url)) {
+        showToast('אזהרה: הכתובת אינה נראית כמו Web App של Apps Script (/exec). המשך בכל זאת אם אתה בטוח.', true);
+      }
+      setScriptUrl(url);
+      showToast('נשמר!');
+    });
+
+    // Mobile drawer for filters
+    openFiltersBtn.addEventListener('click', () => {
+      drawer.classList.remove('hidden');
+      const content = filtersPanel.querySelector('.space-y-3').outerHTML + filtersPanel.querySelector('.flex.gap-2').outerHTML + '<hr class="my-4">' + filtersPanel.querySelector('.space-y-2').outerHTML;
+      drawerContent.innerHTML = content;
+    });
+    [drawerBackdrop, drawerClose].forEach(el => el.addEventListener('click', () => drawer.classList.add('hidden')));
+
+    // Demo toggle
+    demoToggle.checked = DEMO_MODE;
+    demoToggle.addEventListener('change', (e)=>{ setDemoMode(e.target.checked); showToast('מצב דמו ' + (e.target.checked? 'פעל' : 'נוטרל')); });
+
+    // Diagnostics button
+    diagBtn.addEventListener('click', () => {
+      const url = getScriptUrl();
+      const msgs = [];
+      try {
+        const u = new URL(url);
+        msgs.push('URL: ' + u.href);
+        msgs.push('פרוטוקול: ' + u.protocol);
+        msgs.push('דומיין: ' + u.hostname);
+        if (location.protocol === 'https:' && u.protocol === 'http:') msgs.push('⚠️ Mixed content: API ב-HTTP');
+        if (!u.pathname.includes('/exec')) msgs.push('⚠️ נתיב ללא /exec — ודא שזו כתובת Web App');
+      } catch(e) { msgs.push('⚠️ כתובת לא תקינה'); }
+      msgs.push('הערה: אם מתקבלת שגיאת CORS, הוסף כותרות Access-Control-Allow-Origin בצד השרת.');
+      diagMessage(msgs.join('<br>'));
+    });
+
+    runTestsBtn.addEventListener('click', runUnitTests);
+    loadDemoBtn.addEventListener('click', loadDemoData);
+
+    // INIT
+    (DEMO_MODE ? loadDemoData() : fetchOrders());
+  </script>
+
+  <!--
+  =======================
+  Apps Script — תוספת CORS מומלצת (צד שרת)
+  הוסף ל-doGet / doPost:
+  
+  function doGet(e){
+    const data = { success: true, data: /* ... קריאת גיליון ... */ [] };
+    const out = ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+    out.setHeader('Access-Control-Allow-Origin', '*');
+    out.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    out.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    return out;
+  }
+  
+  חשוב: פרסם כ-Web App ובחר Anyone with the link
+  =======================
+  -->
+</body>
+</html>
