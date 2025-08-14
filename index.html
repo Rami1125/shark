@@ -1,181 +1,112 @@
 <!DOCTYPE html>
-<html lang="he">
+<html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>לוח בקרה לניהול מכולות</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; background: #f3f4f6; }
-    h1 { text-align: center; }
-    button { margin: 5px; padding: 10px 15px; cursor: pointer; }
-    input, select { padding: 5px; margin: 5px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #eee; }
-    .metrics { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
-    .metric { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px #ccc; flex: 1; min-width: 150px; text-align: center; }
-    canvas { background: #fff; margin-top: 20px; border-radius: 8px; padding: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת מעקב מכולות</title>
+    <!-- Tailwind CSS CDN for utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body>
-  <h1>לוח בקרה לניהול מכולות</h1>
+<body class="bg-gradient-to-br from-indigo-900 to-purple-900 min-h-screen p-4 font-inter text-gray-100">
 
-  <div>
-    <button id="newOrderBtn">+ הזמנה חדשה</button>
-    <button id="refreshBtn">רענן</button>
-    <input type="text" id="searchInput" placeholder="הקלד לחיפוש...">
-    <select id="actionFilter">
-      <option value="">כל סוגי הפעולה</option>
-    </select>
-    <input type="number" id="daysMax" placeholder="ימים שעברו (מקסימום)">
-  </div>
+    <!-- Header Section -->
+    <header class="flex flex-col md:flex-row items-center justify-between p-4 mb-6 bg-white bg-opacity-10 backdrop-filter backdrop-blur-lg rounded-2xl shadow-lg border border-white border-opacity-20">
+        <div class="flex items-center mb-4 md:mb-0">
+            <!-- Logo Placeholder -->
+            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white text-lg font-bold mr-3">C</div>
+            <h1 class="text-3xl font-bold text-white tracking-wide">לוח מעקב מכולות</h1>
+        </div>
+        <div class="flex flex-wrap justify-center gap-3">
+            <button id="addOrderBtn" class="action-btn bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+                <i class="fas fa-plus ml-2"></i>הוסף הזמנה
+            </button>
+            <button id="refreshBtn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+                <i class="fas fa-sync-alt ml-2"></i>רענן
+            </button>
+            <button id="toggleClosedBtn" class="action-btn bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+                <i class="fas fa-eye ml-2"></i>הצג סגורות
+            </button>
+            <button id="containersOnSitesBtn" class="action-btn bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+                <i class="fas fa-map-marker-alt ml-2"></i>מכולות באתרים
+            </button>
+        </div>
+    </header>
 
-  <div class="metrics">
-    <div class="metric">סה"כ פתוחות: <span id="totalOpen">0</span></div>
-    <div class="metric">חריגות (&gt; 10 ימים): <span id="overdue">0</span></div>
-    <div class="metric">פעולות איסוף היום: <span id="todayActions">0</span></div>
-    <div class="metric">ממוצע ימים שעברו: <span id="avgDays">0.0</span></div>
-  </div>
+    <!-- KPI Cards Section -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="kpi-card">
+            <h3 class="text-lg font-medium text-white text-opacity-80">הזמנות פתוחות</h3>
+            <p id="kpiOpen" class="text-4xl font-bold text-white mt-2">0</p>
+        </div>
+        <div class="kpi-card bg-red-600 bg-opacity-30 border-red-500 border-opacity-30">
+            <h3 class="text-lg font-medium text-white text-opacity-80">הזמנות חורגות</h3>
+            <p id="kpiOverdue" class="text-4xl font-bold text-white mt-2">0</p>
+        </div>
+        <div class="kpi-card bg-yellow-600 bg-opacity-30 border-yellow-500 border-opacity-30">
+            <h3 class="text-lg font-medium text-white text-opacity-80">יסתיימו ב-3 ימים</h3>
+            <p id="kpiExpiring" class="text-4xl font-bold text-white mt-2">0</p>
+        </div>
+        <div class="kpi-card bg-orange-600 bg-opacity-30 border-orange-500 border-opacity-30">
+            <h3 class="text-lg font-medium text-white text-opacity-80">כפילויות</h3>
+            <p id="kpiDuplicates" class="text-4xl font-bold text-white mt-2">0</p>
+        </div>
+    </section>
 
-  <canvas id="actionChart" height="150"></canvas>
-  <canvas id="daysChart" height="150"></canvas>
+    <!-- Alerts Bar -->
+    <div id="alertsBar" class="hidden p-3 mb-6 rounded-lg text-center font-semibold text-sm bg-red-600 bg-opacity-30 border border-red-500 border-opacity-30 transition-all duration-300 ease-in-out">
+        <i class="fas fa-exclamation-triangle ml-2"></i>
+        <span id="alertsText"></span>
+        <button id="viewAlertsBtn" class="text-white underline mr-2 hover:text-gray-200">צפה בפרטים</button>
+    </div>
 
-  <table id="ordersTable">
-    <thead>
-      <tr>
-        <th>תעודה</th>
-        <th>שם לקוח</th>
-        <th>שם סוכן</th>
-        <th>מתאריך</th>
-        <th>סוג פעולה</th>
-        <th>ימים שעברו</th>
-        <th>מס" מכולה ירדה</th>
-        <th>מס" מכולה עלתה</th>
-        <th>ימים שעברו (עלתה)</th>
-        <th>פעולות</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td colspan="10">לא נמצאו הזמנות תואמות.</td></tr>
-    </tbody>
-  </table>
+    <!-- Main Table Section -->
+    <section class="overflow-x-auto">
+        <table id="ordersTable" class="min-w-full rounded-2xl overflow-hidden shadow-lg">
+            <thead class="bg-white bg-opacity-15 backdrop-filter backdrop-blur-lg">
+                <tr>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">תעודה</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">לקוח</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">כתובת</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">סוג פעולה</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">תאריך התחלה</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">תאריך סיום</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">ימים נותרו</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">מס' מכולה</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">סטטוס</th>
+                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">פעולות</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody" class="divide-y divide-white divide-opacity-10">
+                <!-- Table rows will be inserted here by JavaScript -->
+            </tbody>
+        </table>
+    </section>
 
-  <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7E0OrpJc7Yq4xhFTj376xVMo9VfvhLAjDZ6zdt8QGzXvlzKkANZxn4cV5AfvDPQ0m/exec'; // החלף בכתובת ה-Web App של Code.gs
-    let allOrders = [];
+    <!-- Generic Popup/Modal Structure -->
+    <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white bg-opacity-15 backdrop-filter backdrop-blur-xl rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-lg relative border border-white border-opacity-20 transform scale-95 opacity-0 transition-all duration-300 ease-out">
+            <button id="closeModalBtn" class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300 transition duration-200">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 id="modalTitle" class="text-2xl font-bold text-white mb-4">כותרת חלון קופץ</h2>
+            <div id="modalContent" class="text-white text-opacity-80">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+            <div id="modalActions" class="flex justify-end mt-6 gap-3">
+                <!-- Dynamic action buttons will be loaded here -->
+            </div>
+        </div>
+    </div>
 
-    document.getElementById('refreshBtn').addEventListener('click', fetchOrders);
-    document.getElementById('searchInput').addEventListener('input', filterOrders);
-    document.getElementById('actionFilter').addEventListener('change', filterOrders);
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
+        <!-- Toast messages will appear here -->
+    </div>
 
-    async function fetchOrders() {
-      const res = await fetch(`${SCRIPT_URL}?action=list`);
-      const data = await res.json();
-      if (data.success) {
-        allOrders = data.data;
-        populateActionFilter();
-        updateDashboard(allOrders);
-      } else {
-        alert('שגיאה בשליפת נתונים');
-      }
-    }
-
-    function populateActionFilter() {
-      const select = document.getElementById('actionFilter');
-      const actions = [...new Set(allOrders.map(o => o['סוג פעולה']).filter(a => a))];
-      select.innerHTML = '<option value="">כל סוגי הפעולה</option>';
-      actions.forEach(a => {
-        const option = document.createElement('option');
-        option.value = a;
-        option.textContent = a;
-        select.appendChild(option);
-      });
-    }
-
-    function filterOrders() {
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const actionFilter = document.getElementById('actionFilter').value;
-      const daysMax = parseInt(document.getElementById('daysMax').value) || Infinity;
-
-      const filtered = allOrders.filter(o => {
-        const matchesSearch = o['שם לקוח'].toLowerCase().includes(searchTerm) ||
-                              o['שם סוכן'].toLowerCase().includes(searchTerm) ||
-                              o['תעודה'].toLowerCase().includes(searchTerm);
-        const matchesAction = actionFilter ? o['סוג פעולה'] === actionFilter : true;
-        const matchesDays = parseInt(o['ימים שעברו']) <= daysMax;
-        return matchesSearch && matchesAction && matchesDays;
-      });
-
-      updateDashboard(filtered);
-    }
-
-    function updateDashboard(orders) {
-      // עדכון טבלה
-      const tbody = document.querySelector('#ordersTable tbody');
-      tbody.innerHTML = '';
-      if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10">לא נמצאו הזמנות תואמות.</td></tr>';
-      } else {
-        orders.forEach(o => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${o['תעודה']}</td>
-            <td>${o['שם לקוח']}</td>
-            <td>${o['שם סוכן']}</td>
-            <td>${o['מתאריך']}</td>
-            <td>${o['סוג פעולה']}</td>
-            <td>${o['ימים שעברו']}</td>
-            <td>${o['מס" מכולה ירדה']}</td>
-            <td>${o['מס" מכולה עלתה']}</td>
-            <td>${o['ימים שעברו (עלתה)']}</td>
-            <td><button onclick="alert('עריכה עתידית')">ערוך</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      // עדכון מדדים
-      const totalOpen = orders.length;
-      const overdue = orders.filter(o => parseInt(o['ימים שעברו']) > 10).length;
-      const today = orders.filter(o => o['סוג פעולה'] === 'איסוף' && o['מתאריך'] === new Date().toLocaleDateString('he-IL')).length;
-      const avgDays = orders.length ? (orders.reduce((sum, o) => sum + parseInt(o['ימים שעברו']), 0)/orders.length).toFixed(1) : 0.0;
-
-      document.getElementById('totalOpen').textContent = totalOpen;
-      document.getElementById('overdue').textContent = overdue;
-      document.getElementById('todayActions').textContent = today;
-      document.getElementById('avgDays').textContent = avgDays;
-
-      // גרפים
-      renderActionChart(orders);
-      renderDaysChart(orders);
-    }
-
-    function renderActionChart(orders) {
-      const ctx = document.getElementById('actionChart').getContext('2d');
-      const counts = {};
-      orders.forEach(o => { counts[o['סוג פעולה']] = (counts[o['סוג פעולה']]||0)+1; });
-
-      if(window.actionChartInstance) window.actionChartInstance.destroy();
-      window.actionChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: Object.keys(counts), datasets: [{ label: 'התפלגות סוגי פעולה', data: Object.values(counts), backgroundColor: '#4f46e5' }] },
-        options: { responsive: true }
-      });
-    }
-
-    function renderDaysChart(orders) {
-      const ctx = document.getElementById('daysChart').getContext('2d');
-      const days = orders.map(o => parseInt(o['ימים שעברו'])).sort((a,b)=>a-b);
-      if(window.daysChartInstance) window.daysChartInstance.destroy();
-      window.daysChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: days, datasets: [{ label: 'היסטוגרמת ימים שעברו', data: days, backgroundColor: '#f97316' }] },
-        options: { responsive: true }
-      });
-    }
-
-    // אתחול
-    fetchOrders();
-  </script>
+    <script src="script.js"></script>
 </body>
 </html>
