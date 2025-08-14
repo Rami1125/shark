@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- הגדרות גלובליות ---
+    // יש להחליף את ה-URL הזה בכתובת ה-URL של ה-Web App שפרסתם מ-Google Apps Script.
+    // ודאו שכתובת ה-URL מסתיימת ב-`/exec`
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbycOHeM6jyivyEuYBC5ovuL1cs9WBv6FvWbZDxJaBhIXqf9MkbA_bJKG0COXKdYJzkM/exec';
+
     // DOM elements
     const ordersTableBody = document.getElementById('ordersTableBody');
     const kpiOpen = document.getElementById('kpiOpen');
@@ -13,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalContent = document.getElementById('modalContent');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const toastContainer = document.getElementById('toastContainer');
+    const modalActionsDiv = document.createElement('div'); // Create modal actions div globally
+    modalActionsDiv.id = 'modalActions';
+    modalActionsDiv.classList.add('flex', 'justify-end', 'mt-6', 'gap-3');
+
 
     // Action buttons
     const addOrderBtn = document.getElementById('addOrderBtn');
@@ -21,160 +30,201 @@ document.addEventListener('DOMContentLoaded', () => {
     const containersOnSitesBtn = document.getElementById('containersOnSitesBtn');
 
     let showAllOrders = false; // State for toggling closed orders
+    let currentOrdersData = []; // Stores the data fetched from GAS
 
-    // Mock Data - Simulates data fetched from Google Apps Script
-    // In a real application, this would come from the backend.
-    let mockOrdersData = [
-        {
-            id: 'ORD001',
-            docId: 'DOC123',
-            clientName: 'לקוח א׳ בע״מ',
-            address: 'רחוב הרצל 1, תל אביב',
-            actionType: 'הצבה',
-            startDate: '2025-07-01',
-            containerNum: 'C-001',
-            status: 'פתוחה',
-            endDate: '2025-07-15', // Calculated mock
-            daysLeft: 5, // Calculated mock
-            isOverdue: false,
-            duplicateFlags: []
-        },
-        {
-            id: 'ORD002',
-            docId: 'DOC124',
-            clientName: 'לקוח ב׳ פתרונות',
-            address: 'דרך יפו 50, חיפה',
-            actionType: 'החלפה',
-            startDate: '2025-07-05',
-            containerNum: 'C-002',
-            status: 'פתוחה',
-            endDate: '2025-07-19',
-            daysLeft: 9,
-            isOverdue: false,
-            duplicateFlags: []
-        },
-        {
-            id: 'ORD003',
-            docId: 'DOC125',
-            clientName: 'לקוח ג׳ שירותים',
-            address: 'שדרות ירושלים 100, ירושלים',
-            actionType: 'הצבה',
-            startDate: '2025-06-20',
-            containerNum: 'C-003',
-            status: 'פתוחה',
-            endDate: '2025-07-04',
-            daysLeft: -10, // Overdue example
-            isOverdue: true,
-            duplicateFlags: ['container-duplicate']
-        },
-        {
-            id: 'ORD004',
-            docId: 'DOC126',
-            clientName: 'לקוח ד׳ בנייה',
-            address: 'רחוב הנגב 15, באר שבע',
-            actionType: 'הוצאה',
-            startDate: '2025-06-01',
-            containerNum: 'C-004',
-            status: 'סגורה',
-            endDate: '2025-06-15',
-            daysLeft: null,
-            isOverdue: false,
-            duplicateFlags: []
-        },
-        {
-            id: 'ORD005',
-            docId: 'DOC127',
-            clientName: 'לקוח א׳ בע״מ', // Duplicate client name for fuzzy match
-            address: 'רחוב הרצל 1א, תל אביב', // Similar address
-            actionType: 'הצבה',
-            startDate: '2025-07-10',
-            containerNum: 'C-005',
-            status: 'פתוחה',
-            endDate: '2025-07-24',
-            daysLeft: 14,
-            isOverdue: false,
-            duplicateFlags: ['client-fuzzy-address']
-        },
-        {
-            id: 'ORD006',
-            docId: 'DOC128',
-            clientName: 'לקוח ה׳ שילוח',
-            address: 'רחוב הפרחים 20, רעננה',
-            actionType: 'הצבה',
-            startDate: '2025-07-12',
-            containerNum: 'C-003', // Duplicate container number
-            status: 'פתוחה',
-            endDate: '2025-07-26',
-            daysLeft: 16,
-            isOverdue: false,
-            duplicateFlags: ['container-duplicate']
-        }
-    ];
+
+    // --- פונקציות תקשורת עם ה-Backend (Google Apps Script) ---
 
     /**
-     * Calculates the end date based on start date and 10 business days.
-     * This is a simplified client-side calculation.
-     * A more robust version would handle holidays and exact business day logic.
-     * @param {string} startDateString - Start date in YYYY-MM-DD format.
-     * @returns {string} End date in YYYY-MM-DD format.
+     * Generic fetch function with exponential backoff for GAS API calls.
+     * @param {string} url The URL for the fetch request.
+     * @param {Object} options Fetch options (method, headers, body).
+     * @param {number} retries Current retry count.
+     * @returns {Promise<Object>} The JSON response data.
      */
-    function calculateEndDate(startDateString) {
-        let date = new Date(startDateString);
-        let businessDaysAdded = 0;
-        let days = 0;
-        while (businessDaysAdded < 10) {
-            date.setDate(date.getDate() + 1);
-            let dayOfWeek = date.getDay();
-            // 0 = Sunday, 6 = Saturday. Skip weekends.
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                businessDaysAdded++;
+    async function fetchData(url, options = {}, retries = 0) {
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                // If response is not OK, try to parse JSON error or use status text
+                const errorText = await response.text();
+                throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
             }
-            days++;
-            // Prevent infinite loop in case of bad logic (though unlikely here)
-            if (days > 30) break;
-        }
-        return date.toISOString().split('T')[0];
-    }
-
-    /**
-     * Calculates days left until end date.
-     * @param {string} endDateString - End date in YYYY-MM-DD format.
-     * @returns {number} Days remaining. Negative if overdue.
-     */
-    function calculateDaysLeft(endDateString) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize to start of day
-        const endDate = new Date(endDateString);
-        endDate.setHours(0, 0, 0, 0); // Normalize to start of day
-        const diffTime = endDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
-    }
-
-    /**
-     * Updates mock data with calculated fields (endDate, daysLeft, isOverdue).
-     * In a real app, these calculations might be done on the backend.
-     */
-    function processMockData() {
-        mockOrdersData.forEach(order => {
-            if (order.actionType === 'הצבה' || order.actionType === 'החלפה') {
-                order.endDate = calculateEndDate(order.startDate);
-                order.daysLeft = calculateDaysLeft(order.endDate);
-                order.isOverdue = order.daysLeft < 0;
+            return await response.json();
+        } catch (error) {
+            if (retries < 3) { // Max 3 retries (total 4 attempts)
+                const delay = Math.pow(2, retries) * 1000; // 1s, 2s, 4s
+                console.warn(`Attempt ${retries + 1} failed for ${url}. Retrying in ${delay / 1000}s...`, error);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return fetchData(url, options, retries + 1);
             } else {
-                order.endDate = null;
-                order.daysLeft = null;
-                order.isOverdue = false;
+                console.error(`Fetch failed after ${retries} retries:`, error);
+                showToast(`שגיאה בטעינת הנתונים: ${error.message}`, 'error');
+                throw error;
             }
-        });
+        }
     }
+
+    /**
+     * Fetches orders from the GAS backend.
+     * @param {boolean} includeClosed - Whether to fetch all orders or only open ones.
+     * @returns {Promise<Array<Object>>} List of order objects.
+     */
+    async function fetchOrders(includeClosed = false) {
+        showToast('טוען נתונים...', 'info');
+        const showParam = includeClosed ? 'all' : 'open';
+        try {
+            const response = await fetchData(`${WEB_APP_URL}?action=list&show=${showParam}`);
+            if (response.success) {
+                currentOrdersData = response.data;
+                showToast('נתונים נטענו בהצלחה', 'success');
+                return currentOrdersData;
+            } else {
+                throw new Error(response.error || 'שגיאה בטעינת הזמנות.');
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            showToast(`שגיאה בטעינת הזמנות: ${error.message}`, 'error');
+            return [];
+        }
+    }
+
+    /**
+     * Adds a new order via the GAS backend.
+     * @param {Object} orderData The order data.
+     */
+    async function addOrderToBackend(orderData) {
+        showToast('מוסיף הזמנה...', 'info');
+        try {
+            const response = await fetchData(WEB_APP_URL + '?action=add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' }, // GAS expects text/plain for raw body
+                body: JSON.stringify({ orderData: orderData })
+            });
+            if (response.success) {
+                showToast('הזמנה נוספה בהצלחה!', 'success');
+                await initializeAppData(); // Re-fetch and re-render
+            } else {
+                throw new Error(response.error || 'שגיאה בהוספת הזמנה.');
+            }
+        } catch (error) {
+            console.error('Error adding order:', error);
+            showToast(`שגיאה בהוספת הזמנה: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Edits an existing order via the GAS backend.
+     * @param {string} id The ID of the order to edit.
+     * @param {Object} updatedData The updated data.
+     */
+    async function editOrderInBackend(id, updatedData) {
+        showToast('מעדכן הזמנה...', 'info');
+        try {
+            const response = await fetchData(`${WEB_APP_URL}?action=edit&id=${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ orderData: updatedData })
+            });
+            if (response.success) {
+                showToast('הזמנה עודכנה בהצלחה!', 'success');
+                await initializeAppData();
+            } else {
+                throw new Error(response.error || 'שגיאה בעדכון הזמנה.');
+            }
+        } catch (error) {
+            console.error('Error editing order:', error);
+            showToast(`שגיאה בעדכון הזמנה: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Duplicates an order via the GAS backend.
+     * @param {string} id The ID of the order to duplicate.
+     */
+    async function duplicateOrderInBackend(id) {
+        showToast('משכפל הזמנה...', 'info');
+        try {
+            const response = await fetchData(`${WEB_APP_URL}?action=duplicate&id=${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({}) // Empty body for POST
+            });
+            if (response.success) {
+                showToast('הזמנה שוכפלה בהצלחה!', 'success');
+                await initializeAppData();
+            } else {
+                throw new Error(response.error || 'שגיאה בשכפול הזמנה.');
+            }
+        } catch (error) {
+            console.error('Error duplicating order:', error);
+            showToast(`שגיאה בשכפול הזמנה: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Closes an order via the GAS backend.
+     * @param {string} id The ID of the order to close.
+     */
+    async function closeOrderInBackend(id) {
+        showToast('סוגר הזמנה...', 'info');
+        try {
+            const response = await fetchData(`${WEB_APP_URL}?action=close&id=${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({}) // Empty body for POST
+            });
+            if (response.success) {
+                showToast('הזמנה נסגרה בהצלחה!', 'success');
+                await initializeAppData();
+            } else {
+                throw new Error(response.error || 'שגיאה בסגירת הזמנה.');
+            }
+        } catch (error) {
+            console.error('Error closing order:', error);
+            showToast(`שגיאה בסגירת הזמנה: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Fetches order history from the GAS backend.
+     * @param {string} clientName
+     * @param {string} address
+     * @param {string} containerNum
+     * @returns {Promise<Array<Object>>} List of historical orders.
+     */
+    async function fetchOrderHistory(clientName, address, containerNum) {
+        showToast('טוען היסטוריית הזמנות...', 'info');
+        const url = new URL(WEB_APP_URL);
+        url.searchParams.append('action', 'history');
+        if (clientName) url.searchParams.append('client', clientName);
+        if (address) url.searchParams.append('address', address);
+        if (containerNum) url.searchParams.append('container', containerNum);
+
+        try {
+            const response = await fetchData(url.toString());
+            if (response.success) {
+                showToast('היסטוריה נטענה בהצלחה', 'success');
+                return response.data;
+            } else {
+                throw new Error(response.error || 'שגיאה בטעינת היסטוריה.');
+            }
+        } catch (error) {
+            console.error('Error fetching history:', error);
+            showToast(`שגיאה בטעינת היסטוריה: ${error.message}`, 'error');
+            return [];
+        }
+    }
+
+
+    // --- פונקציות עיבוד ורינדור UI ---
 
     /**
      * Renders the orders table based on the current data and filters.
      */
     function renderTable() {
         ordersTableBody.innerHTML = ''; // Clear existing rows
-        const filteredOrders = showAllOrders ? mockOrdersData : mockOrdersData.filter(order => order.status !== 'סגורה');
+        const filteredOrders = showAllOrders ? currentOrdersData : currentOrdersData.filter(order => order.status !== 'סגורה');
 
         if (filteredOrders.length === 0) {
             ordersTableBody.innerHTML = `<tr><td colspan="10" class="py-4 text-center text-gray-400">אין הזמנות להצגה</td></tr>`;
@@ -189,17 +239,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             row.innerHTML = `
-                <td data-label="תעודה:" class="py-3 px-4 text-white font-semibold">${order.docId}</td>
-                <td data-label="לקוח:" class="py-3 px-4 text-white font-semibold">${order.clientName}</td>
-                <td data-label="כתובת:" class="py-3 px-4 text-white text-opacity-90">${order.address}</td>
-                <td data-label="סוג פעולה:" class="py-3 px-4 text-white text-opacity-90">${order.actionType}</td>
-                <td data-label="תאריך התחלה:" class="py-3 px-4 text-white text-opacity-90">${order.startDate}</td>
+                <td data-label="תעודה:" class="py-3 px-4 text-white font-semibold">${order.docId || 'N/A'}</td>
+                <td data-label="לקוח:" class="py-3 px-4 text-white font-semibold">${order.clientName || 'N/A'}</td>
+                <td data-label="כתובת:" class="py-3 px-4 text-white text-opacity-90">${order.address || 'N/A'}</td>
+                <td data-label="סוג פעולה:" class="py-3 px-4 text-white text-opacity-90">${order.actionType || 'N/A'}</td>
+                <td data-label="תאריך התחלה:" class="py-3 px-4 text-white text-opacity-90">${order.startDate || 'N/A'}</td>
                 <td data-label="תאריך סיום:" class="py-3 px-4 text-white text-opacity-90">${order.endDate || 'N/A'}</td>
-                <td data-label="ימים נותרו:" class="py-3 px-4 text-white text-opacity-90">${order.daysLeft !== null ? order.daysLeft : 'N/A'}</td>
-                <td data-label="מס' מכולה:" class="py-3 px-4 text-white font-semibold">${order.containerNum}</td>
+                <td data-label="ימים נותרו:" class="py-3 px-4 text-white text-opacity-90">${order.daysLeft !== null && order.daysLeft !== undefined ? order.daysLeft : 'N/A'}</td>
+                <td data-label="מס' מכולה:" class="py-3 px-4 text-white font-semibold">${order.containerNum || 'N/A'}</td>
                 <td data-label="סטטוס:" class="py-3 px-4 text-white text-opacity-90">
                     <span class="status-badge ${order.status === 'פתוחה' ? 'bg-green-500' : 'bg-gray-500'} rounded-full px-3 py-1 text-xs font-bold">
-                        ${order.status}
+                        ${order.status || 'N/A'}
                     </span>
                 </td>
                 <td data-label="פעולות:" class="py-3 px-4">
@@ -224,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i class="fab fa-whatsapp"></i>
                             <span class="tooltiptext">שלח וואטסאפ</span>
                         </button>
-                        <button class="action-icon-btn history-btn" data-id="${order.id}" data-client="${order.clientName}" data-address="${order.address}" data-container="${order.containerNum}" title="הצג היסטוריה">
+                        <button class="action-icon-btn history-btn" data-id="${order.id}" data-client="${order.clientName || ''}" data-address="${order.address || ''}" data-container="${order.containerNum || ''}" title="הצג היסטוריה">
                             <i class="fas fa-history"></i>
                             <span class="tooltiptext">הצג היסטוריה</span>
                         </button>
@@ -235,25 +285,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Add event listeners for new buttons
+        attachTableButtonListeners();
+    }
+
+    /**
+     * Attaches event listeners to action buttons within the table.
+     * Called after rendering the table.
+     */
+    function attachTableButtonListeners() {
         document.querySelectorAll('.edit-btn').forEach(button => {
             button.addEventListener('click', (e) => showToast(`ערוך הזמנה ${e.currentTarget.dataset.id}`, 'info'));
         });
         document.querySelectorAll('.duplicate-btn').forEach(button => {
-            button.addEventListener('click', (e) => showConfirmPopup(`האם אתה בטוח שברצונך לשכפל את הזמנה ${e.currentTarget.dataset.id}?`, () => showToast(`הזמנה ${e.currentTarget.dataset.id} שוכפלה (בפועל, נדרש קוד backend)`, 'success')));
+            button.addEventListener('click', (e) => showConfirmPopup(`האם אתה בטוח שברצונך לשכפל את הזמנה ${e.currentTarget.dataset.id}?`, () => duplicateOrderInBackend(e.currentTarget.dataset.id)));
         });
         document.querySelectorAll('.close-open-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const orderId = e.currentTarget.dataset.id;
                 const currentStatus = e.currentTarget.dataset.status;
-                const newStatus = currentStatus === 'פתוחה' ? 'סגורה' : 'פתוחה';
-                showConfirmPopup(`האם אתה בטוח שברצונך ${newStatus === 'סגורה' ? 'לסגור' : 'לפתוח'} את הזמנה ${orderId}?`, () => {
-                    const orderIndex = mockOrdersData.findIndex(order => order.id === orderId);
-                    if (orderIndex !== -1) {
-                        mockOrdersData[orderIndex].status = newStatus;
-                        updateKPIs();
-                        renderTable(); // Re-render to reflect status change
-                        showToast(`הזמנה ${orderId} עודכנה לסטטוס: ${newStatus}`, 'success');
-                    }
+                const newStatusAction = currentStatus === 'פתוחה' ? 'לסגור' : 'לפתוח';
+                showConfirmPopup(`האם אתה בטוח שברצונך ${newStatusAction} את הזמנה ${orderId}?`, () => {
+                    closeOrderInBackend(orderId); // Call close endpoint, which will update status to 'סגורה'
+                                                // If 'פתח' is needed, a separate backend action for 'open' would be required.
                 });
             });
         });
@@ -264,14 +317,14 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', (e) => showToast(`שליחת וואטסאפ עבור הזמנה ${e.currentTarget.dataset.id}`, 'info'));
         });
         document.querySelectorAll('.history-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
+            button.addEventListener('click', async (e) => {
                 const { client, address, container } = e.currentTarget.dataset;
-                showOrderHistoryPopup(client, address, container);
+                const historyData = await fetchOrderHistory(client, address, container);
+                showOrderHistoryPopup(client, address, container, historyData);
             });
         });
 
         // Icon button styling (Tailwind applied directly in HTML)
-        // This is a placeholder for potential custom icon button styles.
         document.querySelectorAll('.action-icon-btn').forEach(btn => {
             btn.classList.add('w-8', 'h-8', 'rounded-full', 'bg-white', 'bg-opacity-20', 'flex', 'items-center', 'justify-center', 'text-white', 'text-sm', 'hover:bg-opacity-30', 'transition', 'duration-200', 'relative', 'group');
         });
@@ -281,26 +334,18 @@ document.addEventListener('DOMContentLoaded', () => {
      * Updates the KPI cards with current data counts.
      */
     function updateKPIs() {
-        const openOrders = mockOrdersData.filter(order => order.status === 'פתוחה').length;
-        const overdueOrders = mockOrdersData.filter(order => order.isOverdue).length;
-        const expiringOrders = mockOrdersData.filter(order => order.status === 'פתוחה' && order.daysLeft >= 0 && order.daysLeft <= 3).length;
-        const duplicateContainers = new Set();
-        const seenContainers = new Set();
-        mockOrdersData.forEach(order => {
-            if (order.status === 'פתוחה' && seenContainers.has(order.containerNum)) {
-                duplicateContainers.add(order.containerNum);
-            }
-            seenContainers.add(order.containerNum);
-        });
-        // This is a simplified duplicate check. A real duplicate check would involve the 'duplicateFlags' property.
-        // For now, let's use the container number as a simple example.
-        const totalDuplicates = mockOrdersData.filter(order => order.duplicateFlags.length > 0).length;
+        const openOrders = currentOrdersData.filter(order => order.status === 'פתוחה').length;
+        const overdueOrders = currentOrdersData.filter(order => order.isOverdue).length;
+        const expiringOrders = currentOrdersData.filter(order => order.status === 'פתוחה' && order.daysLeft >= 0 && order.daysLeft <= 3).length;
+
+        // Count duplicates based on the 'duplicateFlags' array
+        const totalDuplicates = currentOrdersData.filter(order => order.duplicateFlags && order.duplicateFlags.length > 0).length;
 
 
         kpiOpen.textContent = openOrders;
         kpiOverdue.textContent = overdueOrders;
         kpiExpiring.textContent = expiringOrders;
-        kpiDuplicates.textContent = totalDuplicates; // Update based on mock duplicate flags
+        kpiDuplicates.textContent = totalDuplicates;
 
         if (overdueOrders > 0 || totalDuplicates > 0) {
             alertsBar.classList.remove('hidden');
@@ -326,12 +371,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function showModal(title, content, actions = []) {
         modalTitle.textContent = title;
         modalContent.innerHTML = content;
-        const modalActionsDiv = document.getElementById('modalActions');
-        modalActionsDiv.innerHTML = '';
+        // Append or replace modalActionsDiv content
+        let existingModalActions = document.getElementById('modalActions');
+        if (existingModalActions) {
+            existingModalActions.remove(); // Remove old one
+        }
+        modalContent.parentElement.appendChild(modalActionsDiv); // Re-append it to the modal body's parent
+        modalActionsDiv.innerHTML = ''; // Clear actions
+
         actions.forEach(action => {
             const btn = document.createElement('button');
             btn.textContent = action.text;
-            btn.classList.add('py-2', 'px-4', 'rounded-lg', 'font-semibold', 'transition', 'duration-200', 'hover:opacity-80', 'flex-grow'); // Added flex-grow
+            btn.classList.add('py-2', 'px-4', 'rounded-lg', 'font-semibold', 'transition', 'duration-200', 'hover:opacity-80', 'flex-grow');
             if (action.className) btn.classList.add(...action.className.split(' '));
             if (action.onClick) btn.addEventListener('click', action.onClick);
             modalActionsDiv.appendChild(btn);
@@ -347,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalOverlay.classList.remove('active');
         // Clear content to prevent lingering data
         modalContent.innerHTML = '';
-        document.getElementById('modalActions').innerHTML = '';
+        document.getElementById('modalActions').innerHTML = ''; // Clear actions div
     }
 
     /**
@@ -377,42 +428,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Displays a popup with order history for a given client/address/container.
-     * This uses mock data, in real app would fetch from backend.
      * @param {string} clientName
      * @param {string} address
      * @param {string} containerNum
+     * @param {Array<Object>} historyData - Data fetched from backend.
      */
-    function showOrderHistoryPopup(clientName, address, containerNum) {
-        const historyOrders = mockOrdersData.filter(order =>
-            order.clientName === clientName ||
-            order.address.includes(address.split(',')[0]) || // Simple fuzzy match on street name
-            order.containerNum === containerNum
-        );
-
-        let contentHtml = `<p class="mb-4">היסטוריית הזמנות עבור ${clientName || 'N/A'}:</p>`;
-        if (historyOrders.length > 0) {
+    function showOrderHistoryPopup(clientName, address, containerNum, historyData) {
+        let contentHtml = `<p class="mb-4">היסטוריית הזמנות עבור ${clientName || 'N/A'} (קשור לכתובת: ${address || 'N/A'}, מכולה: ${containerNum || 'N/A'}):</p>`;
+        if (historyData && historyData.length > 0) {
             contentHtml += `
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-700 bg-opacity-50">
                             <tr>
                                 <th class="py-2 px-3 text-right">תעודה</th>
-                                <th class="py-2 px-3 text-right">סוג</th>
-                                <th class="py-2 px-3 text-right">תאריך</th>
+                                <th class="py-2 px-3 text-right">לקוח</th>
+                                <th class="py-2 px-3 text-right">כתובת</th>
+                                <th class="py-2 px-3 text-right">סוג פעולה</th>
+                                <th class="py-2 px-3 text-right">תאריך התחלה</th>
                                 <th class="py-2 px-3 text-right">מכולה</th>
                                 <th class="py-2 px-3 text-right">סטטוס</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
-            historyOrders.forEach(order => {
+            historyData.forEach(order => {
                 contentHtml += `
                     <tr class="border-t border-gray-600 border-opacity-50">
-                        <td class="py-2 px-3">${order.docId}</td>
-                        <td class="py-2 px-3">${order.actionType}</td>
-                        <td class="py-2 px-3">${order.startDate}</td>
-                        <td class="py-2 px-3">${order.containerNum}</td>
-                        <td class="py-2 px-3">${order.status}</td>
+                        <td class="py-2 px-3">${order.docId || 'N/A'}</td>
+                        <td class="py-2 px-3">${order.clientName || 'N/A'}</td>
+                        <td class="py-2 px-3">${order.address || 'N/A'}</td>
+                        <td class="py-2 px-3">${order.actionType || 'N/A'}</td>
+                        <td class="py-2 px-3">${order.startDate || 'N/A'}</td>
+                        <td class="py-2 px-3">${order.containerNum || 'N/A'}</td>
+                        <td class="py-2 px-3">${order.status || 'N/A'}</td>
                     </tr>
                 `;
             });
@@ -420,12 +469,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-4 text-center text-xs text-white text-opacity-70">
-                    (זוהי היסטוריה חלקית מנתוני הדוגמה.)
-                </div>
             `;
         } else {
-            contentHtml += `<p class="text-center text-gray-400">לא נמצאה היסטוריית הזמנות.</p>`;
+            contentHtml += `<p class="text-center text-gray-400">לא נמצאה היסטוריית הזמנות עבור הפרמטרים שסופקו.</p>`;
         }
 
         showModal('הצג היסטוריה', contentHtml);
@@ -444,9 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         toastContainer.appendChild(toast);
 
-        // Remove toast after duration
         setTimeout(() => {
-            toast.classList.remove('active'); // Start fade out if any custom fade logic
             toast.style.opacity = '0';
             toast.style.transform = 'translateY(20px)';
             setTimeout(() => {
@@ -456,23 +500,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Event Listeners for Header Buttons
-    addOrderBtn.addEventListener('click', () => showToast('פתיחת טופס הוספת הזמנה חדשה', 'info'));
-    refreshBtn.addEventListener('click', () => {
-        showToast('מרענן נתונים...', 'info');
-        // In a real app, this would trigger a fetch from backend
-        processMockData(); // Re-process data
+    // --- פונקציות אתחול ---
+
+    /**
+     * Initializes the application data by fetching from backend and rendering.
+     */
+    async function initializeAppData() {
+        await fetchOrders(showAllOrders); // Fetch data based on current filter preference
         updateKPIs();
         renderTable();
+    }
+
+
+    // --- Event Listeners for Header Buttons ---
+    addOrderBtn.addEventListener('click', () => {
+        // Example for adding a new order (form would be needed)
+        // For now, it's just a toast message.
+        showToast('פתיחת טופס הוספת הזמנה חדשה (פונקציונליות טופס תתווסף בהמשך)', 'info');
+        // Example: addOrderToBackend({ docId: 'NEW001', clientName: 'לקוח חדש', address: 'רחוב העצמאות 1', actionType: 'הצבה', startDate: '2025-08-15', containerNum: 'C-XYZ' });
     });
+
+    refreshBtn.addEventListener('click', initializeAppData);
+
     toggleClosedBtn.addEventListener('click', () => {
         showAllOrders = !showAllOrders;
-        toggleClosedBtn.textContent = showAllOrders ? 'הצג פתוחות בלבד' : 'הצג סגורות';
-        toggleClosedBtn.querySelector('i').className = showAllOrders ? 'fas fa-eye-slash ml-2' : 'fas fa-eye ml-2';
-        renderTable();
+        toggleClosedBtn.innerHTML = showAllOrders ? `<i class="fas fa-eye-slash ml-2"></i>הצג פתוחות בלבד` : `<i class="fas fa-eye ml-2"></i>הצג סגורות`;
+        initializeAppData();
         showToast(showAllOrders ? 'מציג את כל ההזמנות כולל סגורות' : 'מציג הזמנות פתוחות בלבד', 'info');
     });
-    containersOnSitesBtn.addEventListener('click', () => showToast('מעבר לדף "מכולות באתרים"', 'info'));
+
+    containersOnSitesBtn.addEventListener('click', () => showToast('מעבר לדף "מכולות באתרים" (יבנה בהמשך)', 'info'));
 
     // Modal close button
     closeModalBtn.addEventListener('click', hideModal);
@@ -484,35 +541,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // View Alerts Button in the alerts bar
     viewAlertsBtn.addEventListener('click', () => {
-        const overdue = mockOrdersData.filter(order => order.isOverdue);
-        const duplicateIssueOrders = mockOrdersData.filter(order => order.duplicateFlags.length > 0);
+        const overdue = currentOrdersData.filter(order => order.isOverdue);
+        const duplicateIssueOrders = currentOrdersData.filter(order => order.duplicateFlags && order.duplicateFlags.length > 0);
 
         let content = '';
         if (overdue.length > 0) {
-            content += `<h3 class="font-bold mb-2">הזמנות חורגות (${overdue.length}):</h3>`;
+            content += `<h3 class="font-bold mb-2 text-red-300">הזמנות חורגות (${overdue.length}):</h3>`;
             content += `<ul class="list-disc pr-5 mb-4 text-sm">`;
-            overdue.forEach(o => content += `<li>${o.clientName} - ${o.containerNum} (חורג ב-${Math.abs(o.daysLeft)} ימים)</li>`);
+            overdue.forEach(o => content += `<li>תעודה: ${o.docId}, לקוח: ${o.clientName}, מכולה: ${o.containerNum} (חורג ב-${Math.abs(o.daysLeft)} ימים)</li>`);
             content += `</ul>`;
         }
         if (duplicateIssueOrders.length > 0) {
-            content += `<h3 class="font-bold mb-2">הזמנות עם כפילויות (${duplicateIssueOrders.length}):</h3>`;
+            content += `<h3 class="font-bold mb-2 text-orange-300">הזמנות עם כפילויות (${duplicateIssueOrders.length}):</h3>`;
             content += `<ul class="list-disc pr-5 text-sm">`;
             duplicateIssueOrders.forEach(o => {
-                let flagsText = o.duplicateFlags.map(flag => {
+                let flagsText = (o.duplicateFlags || []).map(flag => {
                     if (flag === 'container-duplicate') return 'כפילות מספר מכולה';
                     if (flag === 'client-fuzzy-address') return 'כתובת דומה (ייתכן כפילות לקוח)';
                     return flag;
                 }).join(', ');
-                content += `<li>${o.clientName} - ${o.containerNum} (בעיות: ${flagsText})</li>`;
+                content += `<li>תעודה: ${o.docId}, לקוח: ${o.clientName}, מכולה: ${o.containerNum} (בעיות: ${flagsText})</li>`;
             });
             content += `</ul>`;
+        }
+
+        if (content === '') {
+            content = '<p class="text-center text-gray-400">אין התראות או כפילויות לטפל בהן כרגע. כל הכבוד! 🎉</p>';
         }
 
         showModal('פרטי התראות', content);
     });
 
-    // Initial load
-    processMockData();
-    updateKPIs();
-    renderTable();
+    // Initial application load
+    initializeAppData();
 });
