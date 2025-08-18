@@ -3,110 +3,972 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת מעקב מכולות</title>
-    <!-- Tailwind CSS CDN for utility classes -->
+    <title>מערכת CRM לניהול שכירות מכולות</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <!-- D3.js CDN for charts -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Custom Styles - ensure this file defines the new color palette, gradients, and shadows -->
+    <!-- חשוב: העתק את כל תוכן בלוק ה-STYLE למטה אל קובץ ה-style.css שלך! -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /*
+        פלטת צבעים "מותג ארגוני" חדשה ומשופרת
+        יש להעתיק את תוכן בלוק זה (כולל :root ו-body.dark)
+        אל קובץ ה-style.css הקיים שלך כדי ליישם את העיצוב החדש.
+        */
+        :root {
+            /* Light Theme Palette - פלטת צבעים למצב בהיר */
+            --primary-brand: #6366F1; /* Indigo 500 - סגול כחלחל ראשי */
+            --secondary-brand: #818CF8; /* Indigo 400 - סגול כחלחל משני */
+            --accent-color: #06B6D4; /* Cyan 500 - טורקיז בהיר להדגשה */
+            --background-light: #F8FAFC; /* Slate 50 - רקע בהיר מאוד */
+            --surface-light: #FFFFFF; /* לבן - רקע כרטיסים/מודאלים */
+            --text-dark: #1E293B; /* Slate 900 - טקסט כהה מאוד */
+            --text-medium: #475569; /* Slate 700 - טקסט בינוני */
+            --border-light: #E2E8F0; /* Slate 200 - גבולות בהירים */
+            --shadow-strength: 0.15; /* עוצמת צללית (רך יותר) */
+
+            /* Dark Theme Palette Overrides - שינויים למצב כהה */
+            --dark-primary-brand: #A5B4FC; /* Indigo 300 */
+            --dark-secondary-brand: #C7D2FE; /* Indigo 200 */
+            --dark-accent-color: #22D3EE; /* Cyan 400 */
+            --dark-background-dark: #0F172A; /* Slate 950 - רקע כהה מאוד */
+            --dark-surface-dark: #1E293B; /* Slate 900 - רקע כרטיסים/מודאלים כהה */
+            --dark-text-light: #F1F5F9; /* Slate 100 - טקסט בהיר */
+            --dark-text-medium: #94A3B8; /* Slate 400 - טקסט בינוני לכהה */
+            --dark-border-dark: #334155; /* Slate 700 - גבולות כהים */
+        }
+
+        /* יישום צבעים למצב כהה */
+        body.dark {
+            background-color: var(--dark-background-dark);
+            color: var(--dark-text-light);
+        }
+        body.dark .card,
+        body.dark .modal-content,
+        body.dark .table-container,
+        body.dark .chart-container,
+        body.dark .alert-item,
+        body.dark .nav-tabs,
+        body.dark .order-card-detail,
+        body.dark .main-content-wrapper {
+            background-color: var(--dark-surface-dark);
+            border-color: var(--dark-border-dark);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        body.dark .modal-content:before {
+            background-color: rgba(30, 41, 59, 0.95); /* כהה יותר, שקוף יותר */
+        }
+        body.dark .btn-secondary {
+            background-image: linear-gradient(to right, var(--dark-border-dark), #334155);
+            color: var(--dark-text-light);
+        }
+        body.dark .nav-tab-btn {
+            color: var(--dark-text-medium);
+            background-color: transparent;
+        }
+        body.dark .nav-tab-btn.active {
+            background-image: linear-gradient(to right, var(--dark-primary-brand), var(--dark-secondary-brand));
+            color: var(--dark-text-dark); /* טקסט כהה יותר על רקע בהיר יותר במצב כהה */
+            box-shadow: 0 6px 18px rgba(165, 180, 252, 0.3);
+        }
+        body.dark .nav-tab-btn:not(.active):hover {
+            background-color: #2E3A4B;
+            color: var(--dark-text-light);
+        }
+        body.dark .action-btn {
+            background-color: var(--dark-surface-dark);
+            color: var(--dark-text-medium);
+        }
+        body.dark .action-btn:hover {
+            color: var(--dark-accent-color);
+            background-color: rgba(34, 211, 238, 0.15); /* גוון טורקיז עדין */
+        }
+        body.dark th, body.dark td {
+            color: var(--dark-text-medium);
+            border-color: var(--dark-border-dark);
+        }
+        body.dark th {
+            background-color: #1A2430;
+            color: var(--dark-text-light);
+        }
+        body.dark tr:nth-child(even) {
+            background-color: #1A2430;
+        }
+        body.dark tr:hover {
+            background-color: #2E3A4B;
+        }
+        body.dark input, body.dark select, body.dark textarea {
+            background-color: #263345;
+            border-color: #475569;
+            color: var(--dark-text-light);
+        }
+        body.dark input:focus, body.dark select:focus, body.dark textarea:focus {
+            border-color: var(--dark-accent-color);
+            box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.3);
+        }
+        body.dark .page-header {
+            color: var(--dark-text-light);
+        }
+        body.dark .status-open { color: #84CC16; } /* Lime 500 */
+        body.dark .status-closed { color: #64748B; } /* Slate 500 */
+        body.dark .status-overdue { color: #F87171; } /* Red 400 */
+        body.dark .status-warning { color: #FCD34D; } /* Amber 300 */
+        body.dark .status-pending { color: #60A5FA; } /* Blue 400 */
+        body.dark .closed-order-row {
+            background-color: #1A2430 !important;
+            color: #64748B !important;
+        }
+        body.dark .overdue-110-days {
+            background-color: #431407 !important; /* Darker orange-red */
+            color: #FDBA74 !important;
+            border-left-color: #EA580C; /* Orange 600 */
+        }
+
+        /* סגנונות כלליים משודרגים */
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+            background-color: var(--background-light);
+            color: var(--text-dark);
+            overflow-x: hidden;
+            font-size: 1.05rem;
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Loader */
+        .loader-overlay {
+            background: rgba(255, 255, 255, 0.85);
+        }
+        body.dark .loader-overlay {
+            background: rgba(15, 23, 42, 0.85);
+        }
+        .loader {
+            border: 8px solid var(--border-light);
+            border-top: 8px solid var(--accent-color);
+            box-shadow: 0 0 20px rgba(6, 182, 212, var(--shadow-strength));
+        }
+
+        /* Card styles - סגנון כרטיסים משודרג */
+        .card {
+            background-color: var(--surface-light);
+            border-radius: 20px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, var(--shadow-strength)); /* צללית מפוזרת יותר */
+            border: 1px solid var(--border-light);
+        }
+        .card:hover {
+            box-shadow: 0 20px 55px rgba(0, 0, 0, calc(var(--shadow-strength) * 1.5));
+            transform: translateY(-5px) scale(1.005);
+        }
+
+        /* Button styles - סגנון כפתורים משודרג */
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 16px; /* פינות מעוגלות יותר */
+            font-weight: 700;
+            background-image: linear-gradient(to right, var(--primary-brand), var(--secondary-brand));
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); /* צללית בולטת יותר */
+            font-size: 1.1rem;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+        .btn-primary { background-image: linear-gradient(to right, var(--accent-color), #22D3EE); } /* טורקיז */
+        .btn-primary:hover { background-image: linear-gradient(to right, #0891B2, var(--accent-color)); }
+        .btn-secondary {
+            background-image: linear-gradient(to right, #E2E8F0, #CBD5E1); /* אפור כחלחל */
+            color: var(--text-dark);
+        }
+        .btn-secondary:hover {
+            background-image: linear-gradient(to right, #CBD5E1, #A0AEC0);
+            color: var(--text-dark);
+        }
+        .btn-danger { background-image: linear-gradient(to right, #EF4444, #F87171); } /* אדום */
+        #overdue-customers-btn { background-image: linear-gradient(to right, #B91C1C, #DC2626); }
+
+        .action-btn {
+            border-radius: 16px; /* פינות מעוגלות יותר */
+            font-size: 1.6rem; /* גדול יותר */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .action-btn:hover {
+            transform: scale(1.15); /* אפקט הגדלה עדין יותר */
+            box-shadow: 0 8px 20px rgba(6, 182, 212, 0.2);
+        }
+        body.dark .action-btn:hover {
+            background-color: rgba(34, 211, 238, 0.1);
+        }
+
+        /* Table styles - סגנון טבלאות משודרג */
+        .table-container {
+            border-radius: 20px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, var(--shadow-strength));
+            border: 1px solid var(--border-light);
+        }
+        th {
+            background-color: var(--background-light);
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 1.1rem;
+        }
+        body.dark th {
+            background-color: #1A2430;
+            color: var(--dark-text-light);
+        }
+        tr:nth-child(even) { background-color: #FDFEFF; }
+        body.dark tr:nth-child(even) { background-color: #1A2430; }
+        tr:hover {
+            background-color: #EFF6FF; /* מעבר עכבר עם גוון כחלחל */
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15); /* צללית סגולה עדינה */
+        }
+        body.dark tr:hover {
+            background-color: #2E3A4B;
+            box-shadow: 0 0 20px rgba(165, 180, 252, 0.15);
+        }
+
+        /* Modal styles (Desktop) - סגנון מודאלים (לשולחני) */
+        .modal-content {
+            border-radius: 30px; /* פינות מעוגלות יותר */
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
+            background-image: none; /* הסרנו תמונת רקע */
+            border: none;
+        }
+        .modal-content:before {
+            background-color: rgba(255, 255, 255, 0.98); /* שכבת שקיפות גבוהה יותר */
+        }
+        .modal-close-btn:hover {
+            color: #EF4444; /* אדום */
+            background-color: #FEE2E2;
+            transform: rotate(270deg) scale(1.2);
+        }
+
+        /* Mobile Drawer Modal (overrides for small screens) - מודאל מגירת מובייל (שינויים למסכים קטנים) */
+        @media (max-width: 768px) {
+            .modal-overlay.mobile-drawer .modal-content {
+                border-radius: 25px 25px 0 0;
+                box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+            }
+            body.dark .modal-overlay.mobile-drawer .modal-content {
+                background-color: var(--dark-surface-dark);
+            }
+        }
+
+        /* Toast messages - הודעות טוסט */
+        .alert-item {
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border-left: 10px solid; /* גבול עבה יותר */
+        }
+        body.dark .alert-item {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .alert-item.alert-error { border-color: #EF4444; color: #EF4444; }
+        .alert-item.alert-warning { border-color: #F59E0B; color: #F59E0B;}
+        .alert-item.alert-info { border-color: #06B6D4; color: #06B6D4;} /* טורקיז */
+        .alert-item.alert-success { border-color: #22C55E; color: #22C55E;} /* ירוק */
+
+        /* Input styles - סגנון שדות קלט */
+        input[type="text"], input[type="date"], input[type="datetime-local"], select, textarea {
+            border-radius: 14px; /* פינות מעוגלות יותר */
+            font-size: 1.1rem;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        input[type="text"]:focus, input[type="date"]:focus, input[type="datetime-local"]:focus, select:focus, textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 5px rgba(6, 182, 212, 0.25), inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* Page headers - כותרות עמודים */
+        .page-header {
+            font-size: 4.5rem;
+            font-weight: 900;
+            text-shadow: 4px 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Nav tabs (Desktop Top Nav) - כרטיסיות ניווט (לשולחני) */
+        .nav-tabs {
+            border-radius: 25px; /* פינות מעוגלות יותר */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-light);
+        }
+        .nav-tab-btn {
+            padding: 1.1rem 2.2rem;
+            border-radius: 18px; /* פינות מעוגלות יותר */
+            font-weight: 700;
+            font-size: 1.15rem;
+        }
+        .nav-tab-btn.active {
+            background-image: linear-gradient(to right, var(--primary-brand), var(--secondary-brand));
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+        }
+        .nav-tab-btn:not(.active):hover {
+            background-color: #EEF2FF; /* Indigo 50 */
+            color: var(--primary-brand);
+        }
+        body.dark .nav-tab-btn:not(.active):hover {
+            background-color: #2E3A4B;
+            color: var(--dark-primary-brand);
+        }
+
+        /* Mobile Bottom Navigation Bar - סרגל ניווט תחתון (למובייל) */
+        .bottom-nav-bar {
+            box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.15);
+        }
+        .bottom-nav-btn {
+            border-radius: 12px;
+            font-size: 0.9rem;
+            width: 110px;
+            height: 65px;
+        }
+        .bottom-nav-btn.active {
+            color: var(--primary-brand);
+            background-color: #EEF2FF;
+        }
+        body.dark .bottom-nav-btn.active {
+            background-color: #1A2430;
+            color: var(--dark-primary-brand);
+        }
+        .bottom-nav-btn:hover {
+            background-color: #F0F2F5;
+        }
+        body.dark .bottom-nav-btn:hover {
+            background-color: #263345;
+        }
+
+        /* Container pill - כפתור מכולה */
+        .container-pill {
+            padding: 0.5em 1em;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .container-pill:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+        }
+
+        /* Filter buttons - כפתורי סינון */
+        .btn-filter {
+            border-radius: 14px;
+            font-size: 1.05rem;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+        .btn-filter:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 9px 20px rgba(0, 0, 0, 0.2);
+        }
+        .btn-filter-pickup { background-image: linear-gradient(to right, #22C55E, #16A34A); } /* ירוק */
+        .btn-filter-exchange {
+            background-image: linear-gradient(to right, #F59E0B, #D97706); /* כתום */
+            color: white; /* טקסט לבן על כתום */
+        }
+        .btn-filter-return { background-image: linear-gradient(to right, #EF4444, #DC2626); } /* אדום */
+        .btn-filter-pending { background-image: linear-gradient(to right, #3B82F6, #2563EB); } /* כחול */
+
+        /* Kanban Board - לוח קאנבן */
+        .kanban-column {
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .kanban-item {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .kanban-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 18px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-900 to-purple-900 min-h-screen p-4 font-inter text-gray-100">
+<body class="bg-gray-50 text-gray-800">
 
-    <!-- Header Section -->
-    <header class="flex flex-col md:flex-row items-center justify-between p-4 mb-6 bg-white bg-opacity-10 backdrop-filter backdrop-blur-lg rounded-2xl shadow-lg border border-white border-opacity-20">
-        <div class="flex items-center mb-4 md:mb-0">
-            <!-- Logo Placeholder -->
-            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white text-lg font-bold mr-3">C</div>
-            <h1 class="text-3xl font-bold text-white tracking-wide">לוח מעקב מכולות</h1>
-        </div>
-        <div class="flex flex-wrap justify-center gap-3">
-            <button id="addOrderBtn" class="action-btn bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
-                <i class="fas fa-plus ml-2"></i>הוסף הזמנה
-            </button>
-            <button id="refreshBtn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
-                <i class="fas fa-sync-alt ml-2"></i>רענן
-            </button>
-            <button id="toggleClosedBtn" class="action-btn bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
-                <i class="fas fa-eye ml-2"></i>הצג סגורות
-            </button>
-            <button id="containersOnSitesBtn" class="action-btn bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
-                <i class="fas fa-map-marker-alt ml-2"></i>מכולות באתרים
-            </button>
-        </div>
-    </header>
-
-    <!-- KPI Cards Section -->
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="kpi-card">
-            <h3 class="text-lg font-medium text-white text-opacity-80">הזמנות פתוחות</h3>
-            <p id="kpiOpen" class="text-4xl font-bold text-white mt-2">0</p>
-        </div>
-        <div class="kpi-card bg-red-600 bg-opacity-30 border-red-500 border-opacity-30">
-            <h3 class="text-lg font-medium text-white text-opacity-80">הזמנות חורגות</h3>
-            <p id="kpiOverdue" class="text-4xl font-bold text-white mt-2">0</p>
-        </div>
-        <div class="kpi-card bg-yellow-600 bg-opacity-30 border-yellow-500 border-opacity-30">
-            <h3 class="text-lg font-medium text-white text-opacity-80">יסתיימו ב-3 ימים</h3>
-            <p id="kpiExpiring" class="text-4xl font-bold text-white mt-2">0</p>
-        </div>
-        <div class="kpi-card bg-orange-600 bg-opacity-30 border-orange-500 border-opacity-30">
-            <h3 class="text-lg font-medium text-white text-opacity-80">כפילויות</h3>
-            <p id="kpiDuplicates" class="text-4xl font-bold text-white mt-2">0</p>
-        </div>
-    </section>
-
-    <!-- Alerts Bar -->
-    <div id="alertsBar" class="hidden p-3 mb-6 rounded-lg text-center font-semibold text-sm bg-red-600 bg-opacity-30 border border-red-500 border-opacity-30 transition-all duration-300 ease-in-out">
-        <i class="fas fa-exclamation-triangle ml-2"></i>
-        <span id="alertsText"></span>
-        <button id="viewAlertsBtn" class="text-white underline mr-2 hover:text-gray-200">צפה בפרטים</button>
+    <!-- Loader Spinner - מחוון טעינה -->
+    <div id="loader-overlay" class="loader-overlay hidden active">
+        <div class="loader"></div>
     </div>
 
-    <!-- Main Table Section -->
-    <section class="overflow-x-auto">
-        <table id="ordersTable" class="min-w-full rounded-2xl overflow-hidden shadow-lg">
-            <thead class="bg-white bg-opacity-15 backdrop-filter backdrop-blur-lg">
-                <tr>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">תעודה</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">לקוח</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">כתובת</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">סוג פעולה</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">תאריך התחלה</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">תאריך סיום</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">ימים נותרו</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">מס' מכולה</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">סטטוס</th>
-                    <th class="py-3 px-4 text-right text-sm font-semibold text-white text-opacity-90 tracking-wider">פעולות</th>
-                </tr>
-            </thead>
-            <tbody id="ordersTableBody" class="divide-y divide-white divide-opacity-10">
-                <!-- Table rows will be inserted here by JavaScript -->
-            </tbody>
-        </table>
-    </section>
+    <!-- Container for Alerts (Toasts) - מיכל להתראות (הודעות קופצות) -->
+    <div id="alert-container" aria-live="polite" aria-atomic="true"></div>
 
-    <!-- Generic Popup/Modal Structure -->
-    <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white bg-opacity-15 backdrop-filter backdrop-blur-xl rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-lg relative border border-white border-opacity-20 transform scale-95 opacity-0 transition-all duration-300 ease-out">
-            <button id="closeModalBtn" class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300 transition duration-200">
-                <i class="fas fa-times"></i>
-            </button>
-            <h2 id="modalTitle" class="text-2xl font-bold text-white mb-4">כותרת חלון קופץ</h2>
-            <div id="modalContent" class="text-white text-opacity-80">
-                <!-- Dynamic content will be loaded here -->
+    <!-- Modals - Order, Close, Delete, Autofill, Order Details, Container History, Containers on Site, Export -->
+    <!-- מודאלים - הזמנה, סגירה, מחיקה, מילוי אוטומטי, פרטי הזמנה, היסטוריית מכולה, מכולות באתר, ייצוא -->
+
+    <!-- Order Modal - מודאל הוספה/עריכת הזמנה -->
+    <div id="order-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeOrderModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">הוסף הזמנה חדשה</h2>
+            <form id="order-form" class="space-y-4">
+                <div>
+                    <label for="תאריך הזמנה" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">תאריך הזמנה</label>
+                    <input type="date" id="תאריך הזמנה" name="תאריך הזמנה" class="form-input" required>
+                </div>
+                <div>
+                    <label for="תעודה" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">תעודה</label>
+                    <input type="text" id="תעודה" name="תעודה" class="form-input" required aria-autocomplete="list" aria-controls="autocomplete-docid">
+                    <div id="autocomplete-docid" class="autocomplete-container"></div>
+                </div>
+                <div>
+                    <label for="שם סוכן" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">שם סוכן</label>
+                    <input type="text" id="שם סוכן" name="שם סוכן" class="form-input" required aria-autocomplete="list" aria-controls="autocomplete-agent">
+                    <div id="autocomplete-agent" class="autocomplete-container"></div>
+                </div>
+                <div>
+                    <label for="שם לקוח" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">שם לקוח</label>
+                    <input type="text" id="שם לקוח" name="שם לקוח" class="form-input" required onblur="checkCustomerExistenceAndAutofill()" aria-autocomplete="list" aria-controls="autocomplete-customer">
+                    <div id="autocomplete-customer" class="autocomplete-container"></div>
+                </div>
+                <div>
+                    <label for="כתובת" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">כתובת</label>
+                    <input type="text" id="כתובת" name="כתובת" class="form-input" required onblur="checkCustomerExistenceAndAutofill()" aria-autocomplete="list" aria-controls="autocomplete-address">
+                    <div id="autocomplete-address" class="autocomplete-container"></div>
+                </div>
+                <div>
+                    <label for="סוג פעולה" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">סוג פעולה</label>
+                    <select id="סוג פעולה" name="סוג פעולה" class="form-select" required onchange="handleActionTypeChange()">
+                        <option value="הורדה">הורדה</option>
+                        <option value="העלאה">העלאה</option>
+                        <option value="החלפה">החלפה</option>
+                    </select>
+                </div>
+                <div id="container-taken-div">
+                    <label for="מספר מכולה ירדה" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">מספר מכולה ירדה (או יחידה)</label>
+                    <input type="text" id="מספר מכולה ירדה" name="מספר מכולה ירדה" class="form-input" aria-autocomplete="list" aria-controls="autocomplete-container-taken">
+                    <div id="autocomplete-container-taken" class="autocomplete-container"></div>
+                </div>
+                <div id="container-brought-div" class="hidden">
+                    <label for="מספר מכולה עלתה" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">מספר מכולה עלתה</label>
+                    <input type="text" id="מספר מכולה עלתה" name="מספר מכולה עלתה" class="form-input" aria-autocomplete="list" aria-controls="autocomplete-container-brought">
+                    <div id="autocomplete-container-brought" class="autocomplete-container"></div>
+                </div>
+                <div>
+                    <label for="תאריך סיום צפוי" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">תאריך סיום צפוי</label>
+                    <input type="date" id="תאריך סיום צפוי" name="תאריך סיום צפוי" class="form-input">
+                </div>
+                <div>
+                    <label for="תאריך וזמן עדכון הערה" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">תאריך וזמן עדכון הערה</label>
+                    <input type="datetime-local" id="תאריך וזמן עדכון הערה" name="תאריך וזמן עדכון הערה" class="form-input">
+                </div>
+                <!-- שדה להוספת קבצים מצורפים -->
+                <div>
+                    <label for="file-attachment" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">צרף קבצים (אופציונלי)</label>
+                    <input type="file" id="file-attachment" name="file-attachment" multiple class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300 dark:hover:file:bg-blue-800">
+                </div>
+                <div>
+                    <label for="predefined-notes" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">הערות מובנות</label>
+                    <select id="predefined-notes" class="form-select mb-2" onchange="addPredefinedNote()">
+                        <option value="">בחר הערה מובנית</option>
+                        <option value="סטטוס טיפול: הלקוח רוצה עוד יומיים להוציא את המכולה.">סטטוס טיפול: הלקוח רוצה עוד יומיים להוציא את המכולה.</option>
+                        <option value="בוצע איסוף מכולה מהלקוח.">בוצע איסוף מכולה מהלקוח.</option>
+                        <option value="תיאום החלפת מכולה לשבוע הבא.">תיאום החלפת מכולה לשבוע הבא.</option>
+                        <option value="מכולה ממתינה לתיקון.">מכולה ממתינה לתיקון.</option>
+                    </select>
+                    <label for="הערות" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">הערות</label>
+                    <textarea id="הערות" name="הערות" rows="3" class="form-textarea"></textarea>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" class="btn btn-secondary" onclick="closeOrderModal()" aria-label="ביטול">ביטול</button>
+                    <button type="submit" class="btn btn-primary" aria-label="שמור הזמנה">שמור הזמנה</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Close Order Modal - מודאל סגירת הזמנה -->
+    <div id="close-order-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="close-modal-title">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeCloseOrderModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="close-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">סגור הזמנה</h2>
+            <p class="mb-4 text-gray-600 dark:text-gray-300">האם אתה בטוח שברצונך לסגור את הזמנה מספר <span id="close-order-id" class="font-bold"></span>?</p>
+            <div class="mb-4">
+                <label for="close-notes" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">הערות סיום (אופציונלי)</label>
+                <textarea id="close-notes" rows="3" class="form-textarea"></textarea>
             </div>
-            <div id="modalActions" class="flex justify-end mt-6 gap-3">
-                <!-- Dynamic action buttons will be loaded here -->
+            <div class="flex justify-end gap-3">
+                <button type="button" class="btn btn-secondary" onclick="closeCloseOrderModal()" aria-label="ביטול">ביטול</button>
+                <button type="button" class="btn btn-primary" id="confirm-close-btn" aria-label="אשר סגירה">אשר סגירה</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notifications Container -->
-    <div id="toastContainer" class="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
-        <!-- Toast messages will appear here -->
+    <!-- Delete Confirm Modal - מודאל אישור מחיקה -->
+    <div id="delete-confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeDeleteConfirmModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="delete-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">אשר מחיקה</h2>
+            <p class="mb-6 text-gray-600 dark:text-gray-300">האם אתה בטוח שברצונך למחוק את הזמנה מספר <span id="delete-order-id" class="font-bold"></span>? פעולה זו בלתי הפיכה.</p>
+            <div class="flex justify-end gap-3">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()" aria-label="ביטול">ביטול</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn" aria-label="מחק">מחק</button>
+            </div>
+        </div>
     </div>
 
+    <!-- Overdue Customers Modal - מודאל לקוחות חורגים -->
+    <div id="overdue-customers-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="overdue-modal-title">
+        <div class="modal-content modal-full-width">
+            <button class="modal-close-btn" onclick="closeOverdueCustomersModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="overdue-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">לקוחות חורגים בשכירות</h2>
+            <div class="modal-body table-container">
+                <table id="overdue-customers-table" class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th>שם לקוח</th>
+                            <th>תעודה</th>
+                            <th>כתובת</th>
+                            <th>ימים שעברו</th>
+                            <th>מספרי מכולות</th>
+                            <th>הערות</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+                <p id="no-overdue-customers" class="text-center text-gray-500 mt-4 hidden dark:text-gray-400">אין לקוחות חורגים לטיפול כרגע. 🎉</p>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button class="btn btn-secondary" onclick="closeOverdueCustomersModal()" aria-label="סגור">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Autofill Confirm Modal - מודאל אישור מילוי אוטומטי -->
+    <div id="autofill-confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="autofill-modal-title">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="hideAutofillConfirmModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="autofill-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">לקוח זוהה!</h2>
+            <p class="mb-6 text-gray-600 dark:text-gray-300">לקוח/כתובת זוהו במערכת. תרצה למלא אוטומטי את נתוני ההזמנה האחרונה?</p>
+            <div class="flex justify-center gap-4">
+                <button type="button" class="btn btn-primary" onclick="confirmAutofill(true)" aria-label="כן">כן</button>
+                <button type="button" class="btn btn-secondary" onclick="confirmAutofill(false)" aria-label="לא">לא</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal - מודאל פרטי הזמנה -->
+    <div id="order-details-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="details-modal-title">
+        <div class="modal-content modal-full-width">
+            <button class="modal-close-btn" onclick="closeOrderDetailsModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="details-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">פרטי הזמנה</h2>
+            <div class="modal-body">
+                <div id="current-order-card" class="order-card-detail">
+                    <!-- Current order details will be loaded here -->
+                </div>
+
+                <button class="history-section-toggle" onclick="toggleCustomerHistorySection()" aria-expanded="false" aria-controls="customer-history-section">
+                    <span id="history-toggle-text">הצג היסטוריית לקוח</span> <i class="fas fa-chevron-down ml-2"></i>
+                </button>
+
+                <div id="customer-history-section" class="history-content table-container mt-4" role="region" aria-live="polite">
+                    <table id="customer-history-table" class="min-w-full">
+                        <thead>
+                            <tr>
+                                <th>תאריך הזמנה</th>
+                                <th>תעודה</th>
+                                <th>סוג פעולה</th>
+                                <th>מספר מכולה ירדה</th>
+                                <th>מספר מכולה עלתה</th>
+                                <th>סטטוס</th>
+                                <th>ימים שעברו</th>
+                                <th>תאריך סגירה</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                    <p id="no-customer-history" class="text-center text-gray-500 mt-4 hidden dark:text-gray-400">אין היסטוריית הזמנות עבור לקוח זה.</p>
+                </div>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button class="btn btn-secondary" onclick="closeOrderDetailsModal()" aria-label="סגור">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container History Modal - מודאל היסטוריית מכולה -->
+    <div id="container-history-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="container-history-modal-title">
+        <div class="modal-content modal-full-width">
+            <button class="modal-close-btn" onclick="closeContainerHistoryModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="container-history-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">היסטוריית מכולה: <span id="history-container-number"></span></h2>
+            <div class="modal-body table-container">
+                <table id="container-history-table" class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th>תאריך הזמנה</th>
+                            <th>תעודה</th>
+                            <th>שם לקוח</th>
+                            <th>סוג פעולה</th>
+                            <th>מספר מכולה ירדה</th>
+                            <th>מספר מכולה עלתה</th>
+                            <th>סטטוס הזמנה</th>
+                            <th>תאריך סיום צפוי</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+                <p id="no-container-history" class="text-center text-gray-500 mt-4 hidden dark:text-gray-400">אין היסטוריית שינויים עבור מכולה זו.</p>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button class="btn btn-secondary" onclick="closeContainerHistoryModal()" aria-label="סגור">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Containers on Site Modal - מודאל מכולות באתרים -->
+    <div id="containers-on-site-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="site-containers-modal-title">
+        <div class="modal-content modal-full-width">
+            <button class="modal-close-btn" onclick="closeContainersOnSiteModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="site-containers-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">מכולות באתרים</h2>
+            <div class="modal-body table-container">
+                <table id="containers-on-site-table" class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th>שם לקוח</th>
+                            <th>כתובת</th>
+                            <th>מכולות בשימוש פעיל</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Containers data will be loaded here -->
+                    </tbody>
+                </table>
+                <p id="no-active-containers-msg" class="text-center text-gray-500 mt-4 hidden dark:text-gray-400">אין מכולות פעילות כרגע באתרים.</p>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button class="btn btn-secondary" onclick="closeContainersOnSiteModal()" aria-label="סגור">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Actions Modal - מודאל פעולות ייצוא והדפסה -->
+    <div id="export-actions-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeExportActionsModal()" aria-label="סגור חלון"><i class="fas fa-times"></i></button>
+            <h2 id="export-modal-title" class="text-2xl font-bold mb-6 text-center text-gray-700 dark:text-gray-100">פעולות ייצוא והדפסה</h2>
+            <div class="export-buttons-container">
+                <button class="btn btn-secondary" onclick="printTable()" aria-label="הדפס טבלה">
+                    <i class="fas fa-print ml-2"></i> הדפס טבלה
+                </button>
+                <button class="btn btn-secondary" onclick="exportToExcel()" aria-label="יצא לאקסל">
+                    <i class="fas fa-file-excel ml-2"></i> יצא לאקסל
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Layout - מבנה האפליקציה הראשי -->
+    <div class="min-h-screen flex flex-col p-4 md:p-8">
+        <header class="mb-8 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center justify-center mb-4">
+                <img src="https://placehold.co/100x100/6366F1/FFFFFF?text=ח.סבן" alt="Company Logo" class="h-20 w-20 rounded-full shadow-lg border-2 border-indigo-300 mr-4" aria-label="לוגו החברה">
+                <h1 class="page-header m-0">ניהול שכירות מכולות ללקוחות ח.סבן </h1>
+            </div>
+            <p class="text-lg text-gray-600 mb-2 dark:text-gray-300">ניהול שכירות מכולות בקלות וביעילות</p>
+            <div class="text-sm text-gray-500 font-mono tracking-wide dark:text-gray-400">
+                <span id="current-date" class="mr-2 text-indigo-600 font-semibold dark:text-indigo-400"></span> |
+                <span id="current-time" class="ml-2 text-blue-600 font-semibold animate-pulse dark:text-blue-400"></span>
+            </div>
+            <div class="flex items-center justify-center gap-4 mt-4">
+                <!-- Dark/Light Mode Toggle - מתג מצב כהה/בהיר -->
+                <button id="theme-toggle" class="px-4 py-2 rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 transition-colors flex items-center gap-2" aria-label="החלף מצב כהה/בהיר">
+                    <i class="fas fa-sun" id="sun-icon"></i><i class="fas fa-moon hidden" id="moon-icon"></i>
+                    <span>מצב בהיר</span>
+                </button>
+                <!-- כפתור התראות פעמוני -->
+                <button id="notification-bell" class="relative px-4 py-2 rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 transition-colors flex items-center gap-2" aria-label="התראות">
+                    <i class="fas fa-bell"></i>
+                    <span id="notification-count" class="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center" style="display: none;">0</span>
+                    <span>התראות</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Desktop Navigation Bar - סרגל ניווט עליון (למחשבים שולחניים) -->
+        <nav class="nav-tabs hidden md:flex">
+            <button id="nav-dashboard" class="nav-tab-btn active" onclick="showPage('dashboard')" aria-controls="dashboard-page" aria-selected="true" role="tab">
+                <i class="fas fa-tachometer-alt ml-2"></i> דאשבורד וטבלת הזמנות
+            </button>
+            <button id="nav-container-inventory" class="nav-tab-btn" onclick="showPage('container-inventory')" aria-controls="container-inventory-page" aria-selected="false" role="tab">
+                <i class="fas fa-boxes ml-2"></i> מלאי מכולות
+            </button>
+            <button id="nav-treatment-board" class="nav-tab-btn" onclick="showPage('treatment-board')" aria-controls="treatment-board-page" aria-selected="false" role="tab">
+                <i class="fas fa-exclamation-circle ml-2"></i> לוח טיפול (הזמנות דורשות התייחסות)
+            </button>
+            <!-- כפתור ניווט ללוח שנה / גאנט -->
+            <button id="nav-calendar-gantt" class="nav-tab-btn" onclick="showPage('calendar-gantt-page')" aria-controls="calendar-gantt-page" aria-selected="false" role="tab">
+                <i class="fas fa-calendar-alt ml-2"></i> לוח שנה / גאנט
+            </button>
+        </nav>
+
+        <main class="flex-grow">
+            <!-- Dashboard and Orders Table Page - דאשבורד וטבלת הזמנות -->
+            <section id="dashboard-page" class="page-content main-content-wrapper" role="tabpanel" aria-labelledby="nav-dashboard">
+                <!-- Top Buttons - כפתורים עליונים -->
+                <div class="flex flex-col md:flex-row justify-center items-center mb-8 gap-4 flex-wrap">
+                    <button class="btn btn-primary" onclick="openOrderModal('add')" aria-label="הוסף הזמנה חדשה" accesskey="n">
+                        <i class="fas fa-plus-circle ml-2"></i> הוסף הזמנה חדשה (Alt+N)
+                    </button>
+                    <button class="btn btn-danger" id="overdue-customers-btn" onclick="openOverdueCustomersModal()" aria-label="לקוחות חורגים לטיפול">
+                        <i class="fas fa-hand-paper ml-2"></i> לקוחות חורגים לטיפול <span id="overdue-customers-badge" class="mr-2 bg-white text-red-600 px-2 py-1 rounded-full text-xs font-bold dark:bg-gray-800 dark:text-red-400">0</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="openContainersOnSiteModal()" aria-label="מכולות באתרים">
+                        <i class="fas fa-map-marked-alt ml-2"></i> מכולות באתרים
+                    </button>
+                    <button class="btn btn-secondary" onclick="openExportActionsModal()" aria-label="פעולות ייצוא">
+                        <i class="fas fa-cogs ml-2"></i> פעולות ייצוא
+                    </button>
+                    <button class="btn btn-secondary" onclick="refreshData()" aria-label="רענן נתונים">
+                        <i class="fas fa-sync-alt ml-2"></i> רענן נתונים
+                    </button>
+                </div>
+
+                <!-- Dashboard Cards - כרטיסי דאשבורד -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="card flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">הזמנות פתוחות</p>
+                            <p id="open-orders-count" class="text-3xl font-bold text-gray-900 mt-1 dark:text-gray-100">0</p>
+                        </div>
+                        <i class="fas fa-box-open text-blue-500 text-4xl opacity-75"></i>
+                    </div>
+                    <div class="card flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">הזמנות חורגות</p>
+                            <p id="overdue-orders-count" class="text-3xl font-bold text-red-500 mt-1 dark:text-red-400">0</p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-red-500 text-4xl opacity-75"></i>
+                    </div>
+                    <div class="card flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">מכולות בשימוש</p>
+                            <p id="containers-in-use" class="text-3xl font-bold text-gray-900 mt-1 dark:text-gray-100">0</p>
+                        </div>
+                        <i class="fas fa-truck-moving text-green-500 text-4xl opacity-75"></i>
+                    </div>
+                    <div class="card flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">לקוחות פעילים</p>
+                            <p id="active-customers-count" class="text-3xl font-bold text-gray-900 mt-1 dark:text-gray-100">0</p>
+                        </div>
+                        <i class="fas fa-users text-indigo-500 text-4xl opacity-75"></i>
+                    </div>
+                </div>
+
+                <!-- Charts and Diagrams - תרשימים ודיאגרמות -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div id="chart-containers-by-customer" class="chart-container">
+                        <button class="action-btn absolute top-3 left-3 z-10" onclick="toggleFullscreen('chart-containers-by-customer')" aria-label="הגדל תרשים מכולות לפי לקוח">
+                            <i class="fas fa-expand-alt"></i>
+                        </button>
+                        <h3 class="text-lg font-bold mb-4 text-gray-700 dark:text-gray-200">מכולות בשימוש לפי לקוח</h3>
+                    </div>
+                    <div id="chart-status-pie" class="chart-container">
+                        <button class="action-btn absolute top-3 left-3 z-10" onclick="toggleFullscreen('chart-status-pie')" aria-label="הגדל תרשים חלוקת סטטוסים">
+                            <i class="fas fa-expand-alt"></i>
+                        </button>
+                        <h3 class="text-lg font-bold mb-4 text-gray-700 dark:text-gray-200">חלוקת הזמנות לפי סטטוס</h3>
+                    </div>
+                </div>
+
+                <!-- Quick Summary above table - סיכום מהיר מעל הטבלה -->
+                <div class="flex justify-around items-center mb-6 p-4 rounded-xl bg-indigo-50 dark:bg-gray-800 shadow-inner">
+                    <div class="text-center">
+                        <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">פתוחות:</p>
+                        <span id="summary-open" class="text-2xl font-bold text-green-600 dark:text-green-400">0</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">חורגות:</p>
+                        <span id="summary-overdue" class="text-2xl font-bold text-red-600 dark:text-red-400">0</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">סגורות:</p>
+                        <span id="summary-closed" class="text-2xl font-bold text-gray-600 dark:text-gray-400">0</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Orders Table - טבלת הזמנות דינמית -->
+                <div class="card p-6 mb-8">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-700 dark:text-gray-200">רשימת הזמנות</h2>
+
+                    <!-- Search and Filter Bar - סרגל חיפוש וסינון -->
+                    <div class="flex flex-col md:flex-row gap-4 mb-6">
+                        <input type="text" id="search-input" placeholder="חפש לפי לקוח, תעודה, כתובת, מכולה..."
+                               class="flex-grow px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                               onkeyup="filterTable()" aria-label="חיפוש חכם">
+                        <select id="filter-status" onchange="filterTable()"
+                                class="px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200" aria-label="סינון לפי סטטוס">
+                            <option value="all">כל הסטטוסים</option>
+                            <option value="פתוח">פתוח</option>
+                            <option value="חורג">חורג</option>
+                            <option value="סגור">סגור</option>
+                            <option value="ממתין/לא תקין">ממתין/לא תקין</option>
+                        </select>
+                        <select id="filter-action-type" onchange="filterTable()"
+                                class="px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200" aria-label="סינון לפי סוג פעולה">
+                            <option value="all">כל סוגי הפעולות</option>
+                            <option value="הורדה">הורדה</option>
+                            <option value="העלאה">העלאה</option>
+                            <option value="החלפה">החלפה</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container" id="printable-table">
+                        <table id="orders-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTable(0)">תאריך הזמנה <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(1)">תעודה <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(2)">שם סוכן <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(3)"><i class="fas fa-user-circle ml-2"></i> שם לקוח <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(4)">כתובת <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(5)">סוג פעולה <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(6)">ימים שעברו <i class="fas fa-sort"></i></th>
+                                    <th><i class="fas fa-box ml-2"></i> מכולות קשורות</th>
+                                    <th onclick="sortTable(8)">סטטוס <i class="fas fa-sort"></i></th>
+                                    <th>הערות</th>
+                                    <th onclick="sortTable(10)">תאריך סיום צפוי <i class="fas fa-sort"></i></th>
+                                    <th>הערות סיום</th>
+                                    <th onclick="sortTable(12)">תאריך סגירה <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(13)">ימים שעברו (עלתה) <i class="fas fa-sort"></i></th>
+                                    <th class="w-24">פעולות</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Order data will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                     <!-- Pagination Controls - פקדי עמודים -->
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" id="prev-page" onclick="changePage(-1)" aria-label="עמוד קודם" disabled>קודם</button>
+                        <span id="page-info" class="pagination-info">עמוד 1 מתוך 1</span>
+                        <button class="pagination-btn" id="next-page" onclick="changePage(1)" aria-label="עמוד הבא" disabled>הבא</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Container Inventory Page - עמוד מלאי מכולות -->
+            <section id="container-inventory-page" class="page-content hidden main-content-wrapper" role="tabpanel" aria-labelledby="nav-container-inventory">
+                <h2 class="page-header">מלאי מכולות</h2>
+                <div class="inventory-flex-container mb-8">
+                    <!-- Containers in Use + In Return Process Table - טבלת מכולות בשימוש + בתהליך החזרה -->
+                    <div class="card p-6 flex-1">
+                        <h3 class="text-xl font-bold mb-4 text-gray-700 dark:text-gray-200">מכולות בשימוש <i class="fas fa-truck-moving text-red-500 mr-2"></i></h3>
+                        <div class="table-container">
+                            <table id="containers-in-use-table" class="min-w-full">
+                                <thead>
+                                    <tr>
+                                        <th>מספר מכולה</th>
+                                        <th>לקוח</th>
+                                        <th>תאריך פעולה</th>
+                                        <th>תעודה</th>
+                                        <th>סטטוס</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Inventory data will be loaded here -->
+                                </tbody>
+                            </table>
+                            <p id="no-containers-in-use" class="text-center text-gray-500 mt-4 hidden dark:text-gray-400">אין מכולות בשימוש כרגע. 🎉</p>
+                        </div>
+                    </div>
+
+                    <!-- Available Containers Table - טבלת מכולות פנויות -->
+                    <div class="card p-6 flex-1">
+                        <h3 class="text-xl font-bold mb-4 text-gray-700 dark:text-gray-200">מכולות פנויות <i class="fas fa-boxes text-green-500 mr-2"></i></h3>
+                        <div class="table-container">
+                            <table id="containers-available-table" class="min-w-full">
+                                <thead>
+                                    <tr>
+                                        <th>מספר מכולה</th>
+                                        <th>תאריך פנוי</th>
+                                        <th>הזמנה קשורה</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Inventory data will be loaded here -->
+                                </tbody>
+                            </table>
+                            <p id="no-containers-available" class="text-center text-gray-500 mt-4 hidden dark:text-gray-400">אין מכולות פנויות כרגע.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Treatment Board Page (Kanban Style) - עמוד לוח טיפול (סגנון קאנבן) -->
+            <section id="treatment-board-page" class="page-content hidden main-content-wrapper" role="tabpanel" aria-labelledby="nav-treatment-board">
+                <h2 class="page-header">לוח טיפול - הזמנות דורשות התייחסות</h2>
+                <p class="text-lg text-gray-600 mb-6 text-center dark:text-gray-300">כאן תמצא את כל ההזמנות החורגות שדורשות טיפול מיידי.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="column-overdue" class="kanban-column" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h3 class="text-xl font-bold text-red-600 dark:text-red-400">חורגות <i class="fas fa-exclamation-triangle mr-2"></i></h3>
+                        <!-- Overdue orders will be dragged here -->
+                    </div>
+                    <div id="column-in-progress" class="kanban-column" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h3 class="text-xl font-bold text-blue-600 dark:text-blue-400">בטיפול <i class="fas fa-spinner mr-2"></i></h3>
+                        <!-- In progress orders will be dragged here -->
+                    </div>
+                    <div id="column-resolved" class="kanban-column" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h3 class="text-xl font-bold text-green-600 dark:text-green-400">טופלו <i class="fas fa-check-circle mr-2"></i></h3>
+                        <!-- Resolved orders will be dragged here -->
+                    </div>
+                </div>
+                <p id="no-treatment-orders" class="text-center text-gray-500 mt-4 hidden dark:text-gray-400">אין הזמנות לטיפול כרגע. כל הכבוד! 🎉</p>
+            </section>
+
+            <!-- עמוד לוח שנה / גאנט (Placeholder) -->
+            <section id="calendar-gantt-page" class="page-content hidden main-content-wrapper" role="tabpanel" aria-labelledby="nav-calendar-gantt">
+                <h2 class="page-header">לוח שנה וציר זמן (גאנט)</h2>
+                <p class="text-lg text-gray-600 mb-6 text-center dark:text-gray-300">
+                    כאן תוצג בעתיד תצוגה ויזואלית של ההזמנות על גבי לוח שנה או ציר זמן (גאנט),
+                    מה שיאפשר מעקב נוח אחר תאריכי יעד ופעולות מתוכננות.
+                </p>
+                <div class="card p-6 text-center text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-calendar-alt text-6xl mb-4 text-indigo-400"></i>
+                    <p class="text-xl font-semibold">התצוגה בפיתוח... הישאר מעודכן לגרסה הבאה!</p>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Mobile Bottom Navigation Bar - סרגל ניווט תחתון (למובייל) -->
+        <nav class="bottom-nav-bar md:hidden" role="tablist">
+            <button id="bottom-nav-dashboard" class="bottom-nav-btn active" onclick="showPage('dashboard')" aria-controls="dashboard-page" aria-selected="true" role="tab">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>דאשבורד</span>
+            </button>
+            <button id="bottom-nav-container-inventory" class="bottom-nav-btn" onclick="showPage('container-inventory')" aria-controls="container-inventory-page" aria-selected="false" role="tab">
+                <i class="fas fa-boxes"></i>
+                <span>מלאי</span>
+            </button>
+            <button id="bottom-nav-treatment-board" class="bottom-nav-btn" onclick="showPage('treatment-board')" aria-controls="treatment-board-page" aria-selected="false" role="tab">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>טיפול</span>
+            </button>
+            <!-- כפתור ניווט למובייל ללוח שנה / גאנט -->
+            <button id="bottom-nav-calendar-gantt" class="bottom-nav-btn" onclick="showPage('calendar-gantt-page')" aria-controls="calendar-gantt-page" aria-selected="false" role="tab">
+                <i class="fas fa-calendar-alt"></i>
+                <span>לוח שנה</span>
+            </button>
+        </nav>
+
+        <footer class="mt-8 text-center text-gray-500 text-sm dark:text-gray-400">
+            <p>&copy; 2025 מערכת CRM למכולות. כל הזכויות שמורות.</p>
+        </footer>
+    </div>
+
+    <!-- Custom JavaScript - קוד JavaScript מותאם אישית -->
+    <!-- שימו לב: יש לוודא שקובץ script.js מעודכן לתמוך באלמנטים החדשים ובפונקציונליות המשופרת. -->
     <script src="script.js"></script>
 </body>
 </html>
