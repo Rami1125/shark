@@ -1,213 +1,1072 @@
-/* General Body and Font Styles */
+/* Define color palette as CSS variables for easy theming */
+/* הגדרת פלטת צבעים כמשתני CSS עבור ניהול קל של ערכות נושא */
+:root {
+    /* Light Theme Palette - פלטת צבעים למצב בהיר */
+    --primary-brand: #6366F1; /* Indigo 500 - סגול כחלחל ראשי */
+    --secondary-brand: #818CF8; /* Indigo 400 - סגול כחלחל משני */
+    --accent-color: #06B6D4; /* Cyan 500 - טורקיז בהיר להדגשה */
+    --danger-color: #DC2626; /* Red 600 - אדום עמוק */
+    --warning-color: #F59E0B; /* Amber 500 - כתום בוהק */
+    --success-color: #22C55E; /* Green 500 - ירוק הצלחה */
+    --info-color: #06B6D4; /* Cyan 500 - כחול מידע */
+    --background-light: #F8FAFC; /* Slate 50 - רקע בהיר מאוד */
+    --surface-light: #FFFFFF; /* לבן - רקע כרטיסים/מודאלים */
+    --text-dark: #1E293B; /* Slate 900 - טקסט כהה מאוד */
+    --text-medium: #475569; /* Slate 700 - טקסט בינוני */
+    --border-light: #E2E8F0; /* Slate 200 - גבולות בהירים */
+    --shadow-strength: 0.15; /* עוצמת צללית (רך יותר) */
+
+    /* Dark Theme Palette Overrides - שינויים למצב כהה */
+    --dark-primary-brand: #A5B4FC; /* Indigo 300 */
+    --dark-secondary-brand: #C7D2FE; /* Indigo 200 */
+    --dark-accent-color: #22D3EE; /* Cyan 400 */
+    --dark-danger-color: #EF4444; /* Red 500 */
+    --dark-warning-color: #FBBF24; /* Amber 400 */
+    --dark-success-color: #4ADE80; /* Green 400 */
+    --dark-info-color: #22D3EE; /* Cyan 400 */
+    --dark-background-dark: #0F172A; /* Slate 950 - רקע כהה מאוד */
+    --dark-surface-dark: #1E293B; /* Slate 900 - רקע כרטיסים/מודאלים כהה */
+    --dark-text-light: #F1F5F9; /* Slate 100 - טקסט בהיר */
+    --dark-text-medium: #94A3B8; /* Slate 400 - טקסט בינוני לכהה */
+    --dark-border-dark: #334155; /* Slate 700 - גבולות כהים */
+}
+
+/* Apply dark mode variables when 'dark' class is present on body */
+/* החלפת משתני מצב כהה כאשר קלאס 'dark' קיים על גוף המסמך */
+body.dark {
+    background-color: var(--dark-background-dark);
+    color: var(--dark-text-light);
+}
+
+body.dark .card,
+body.dark .modal-content,
+body.dark .table-container,
+body.dark .chart-container,
+body.dark .alert-item,
+body.dark .nav-tabs,
+body.dark .order-card-detail,
+body.dark .main-content-wrapper {
+    background-color: var(--dark-surface-dark);
+    border-color: var(--dark-border-dark);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); /* צללית כהה יותר במצב כהה */
+}
+
+body.dark .modal-content:before {
+    background-color: rgba(30, 41, 59, 0.95); /* כהה יותר, שקוף יותר במצב כהה */
+}
+
+body.dark .btn-secondary {
+    background-image: linear-gradient(to right, var(--dark-border-dark), #334155);
+    color: var(--dark-text-light);
+}
+
+body.dark .nav-tab-btn {
+    color: var(--dark-text-medium);
+    background-color: transparent;
+}
+
+body.dark .nav-tab-btn.active {
+    background-image: linear-gradient(to right, var(--dark-primary-brand), var(--dark-secondary-brand));
+    color: var(--dark-text-dark); /* טקסט כהה יותר על רקע בהיר יותר במצב כהה */
+    box-shadow: 0 6px 18px rgba(165, 180, 252, 0.3);
+}
+
+body.dark .nav-tab-btn:not(.active):hover {
+    background-color: #2E3A4B; /* גוון כהה יותר בריחוף */
+    color: var(--dark-text-light);
+}
+
+body.dark .action-btn {
+    background-color: var(--dark-surface-dark);
+    color: var(--dark-text-medium);
+}
+
+body.dark .action-btn:hover {
+    color: var(--dark-accent-color);
+    background-color: rgba(34, 211, 238, 0.15); /* גוון טורקיז עדין בריחוף */
+}
+
+body.dark th, body.dark td {
+    color: var(--dark-text-medium);
+    border-color: var(--dark-border-dark);
+}
+
+body.dark th {
+    background-color: #1A2430; /* רקע כהה יותר לכותרות טבלה */
+    color: var(--dark-text-light);
+}
+
+body.dark tr:nth-child(even) {
+    background-color: #1A2430; /* שורות זוגיות כהות יותר */
+}
+
+body.dark tr:hover {
+    background-color: #2E3A4B; /* ריחוף שורות כהה יותר */
+}
+
+body.dark input, body.dark select, body.dark textarea {
+    background-color: #263345; /* רקע כהה יותר לשדות קלט */
+    border-color: #475569; /* גבולות כהים יותר */
+    color: var(--dark-text-light);
+}
+
+body.dark input:focus, body.dark select:focus, body.dark textarea:focus {
+    border-color: var(--dark-accent-color);
+    box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.3); /* צללית פוקוס טורקיז */
+}
+
+body.dark .page-header {
+    color: var(--dark-text-light);
+}
+
+/* Status colors in dark mode */
+/* צבעי סטטוס במצב כהה */
+body.dark .status-פתוח { color: #84CC16; } /* Lime 500 */
+body.dark .status-סגור { color: #64748B; } /* Slate 500 */
+body.dark .status-חורג { color: #F87171; } /* Red 400 */
+body.dark .status-ממתיןלאתקין { color: #60A5FA; } /* Blue 400 */
+body.dark .status-טופל { color: #22C55E; } /* Green 500 */ /* new status for Kanban */
+
+/* Row specific styling for tables in dark mode */
+/* סגנונות ספציפיים לשורות בטבלאות במצב כהה */
+body.dark .closed-order-row {
+    background-color: #1A2430 !important; /* רקע כהה יותר לשורות סגורות */
+    color: #64748B !important; /* טקסט בהיר יותר לשורות סגורות */
+}
+
+body.dark .overdue-110-days {
+    background-color: #431407 !important; /* רקע כהה יותר לחריגה קיצונית */
+    color: #FDBA74 !important;
+    border-left-color: #EA580C; /* Orange 600 */
+}
+
+/* General Layout and Typography */
+/* פריסה כללית וטיפוגרפיה */
 body {
     font-family: 'Inter', sans-serif;
-    direction: rtl; /* Right-to-left for Hebrew */
-    text-align: right; /* Align text to the right for Hebrew */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    background-color: var(--background-light);
+    color: var(--text-dark);
+    overflow-x: hidden; /* מונע גלילה אופקית */
+    font-size: 1.05rem;
+    font-weight: 400;
+    transition: background-color 0.3s ease, color 0.3s ease; /* אנימציית מעבר חלקה למצב בהיר/כהה */
 }
 
-/* Base Glassmorphism Styles */
-.glass-effect {
-    background-color: rgba(255, 255, 255, 0.1); /* Slightly opaque white */
-    backdrop-filter: blur(10px); /* Blur effect */
-    border-radius: 1rem; /* Rounded corners */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); /* Soft shadow */
-    border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+/* Main content wrapper padding and responsiveness */
+/* ריפוד גלישת התוכן הראשי ותגובתיות */
+.main-content-wrapper {
+    padding: 1rem; /* ברירת מחדל למובייל */
+}
+@media (min-width: 768px) { /* md breakpoint and up */
+    .main-content-wrapper {
+        padding: 2rem; /* ריפוד גדול יותר לשולחני */
+    }
+}
+
+/* Loader Spinner */
+/* ספינר טעינה */
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.85); /* רקע שקוף למצב בהיר */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+}
+body.dark .loader-overlay {
+    background: rgba(15, 23, 42, 0.85); /* רקע שקוף למצב כהה */
+}
+.loader-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.loader {
+    border: 8px solid var(--border-light);
+    border-top: 8px solid var(--accent-color); /* צבע הדגשה לספינר */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 0 20px rgba(6, 182, 212, var(--shadow-strength)); /* צללית עדינה לספינר */
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Alert/Toast Notifications */
+/* התראות / טוסטים */
+#alert-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 300px;
+}
+.alert-item {
+    background-color: var(--surface-light);
+    padding: 1rem 1.5rem;
+    border-radius: 16px; /* פינות מעוגלות יותר */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); /* צללית בולטת */
+    border-left: 10px solid; /* גבול עבה שמשנה צבע */
+    transition: opacity 0.5s ease;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+body.dark .alert-item {
+    background-color: var(--dark-surface-dark);
+    color: var(--dark-text-light);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* צללית כהה יותר במצב כהה */
+}
+.alert-item.alert-success { border-color: var(--success-color); color: var(--success-color); }
+.alert-item.alert-error { border-color: var(--danger-color); color: var(--danger-color); }
+.alert-item.alert-warning { border-color: var(--warning-color); color: var(--warning-color); }
+.alert-item.alert-info { border-color: var(--info-color); color: var(--info-color); }
+
+/* Card styles */
+/* סגנון כרטיסים */
+.card {
+    background-color: var(--surface-light);
+    border-radius: 20px; /* פינות מעוגלות */
+    box-shadow: 0 15px 45px rgba(0, 0, 0, var(--shadow-strength)); /* צללית מפוזרת יותר */
+    border: 1px solid var(--border-light);
+    padding: 1.5rem;
+    transition: all 0.3s ease; /* אנימציית ריחוף */
+}
+.card:hover {
+    box-shadow: 0 20px 55px rgba(0, 0, 0, calc(var(--shadow-strength) * 1.5)); /* צללית חזקה יותר בריחוף */
+    transform: translateY(-5px) scale(1.005);
+}
+
+/* Page Headers */
+/* כותרות עמודים */
+.page-header {
+    font-size: 3rem; /* גודל ברירת מחדל למובייל */
+    font-weight: 900;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    margin-bottom: 1.5rem;
+    color: var(--text-dark);
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+@media (min-width: 768px) {
+    .page-header {
+        font-size: 4.5rem; /* גודל גדול יותר לשולחני */
+        text-shadow: 4px 4px 10px rgba(0,0,0,0.3);
+    }
+}
+body.dark .page-header {
+    text-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+}
+
+
+/* Buttons */
+/* כפתורים */
+.btn {
+    padding: 1rem 2rem;
+    border-radius: 16px; /* פינות מעוגלות יותר */
+    font-weight: 700;
+    background-image: linear-gradient(to right, var(--primary-brand), var(--secondary-brand));
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); /* צללית בולטת יותר */
+    font-size: 1.1rem;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.btn:hover:not(:disabled) {
+    transform: translateY(-4px) scale(1.02); /* אפקט ריחוף בולט */
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35); /* צללית חזקה יותר בריחוף */
+}
+.btn:active:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(1);
+    box-shadow: none;
+}
+
+/* Primary Button (Accent Color) */
+/* כפתור ראשי (צבע הדגשה) */
+.btn-primary {
+    background-image: linear-gradient(to right, var(--accent-color), #22D3EE); /* טורקיז */
+}
+.btn-primary:hover:not(:disabled) {
+    background-image: linear-gradient(to right, #0891B2, var(--accent-color)); /* גוון כהה יותר בריחוף */
+}
+
+/* Secondary Button (Light Grey/Indigo) */
+/* כפתור משני (אפור בהיר / אינדיגו) */
+.btn-secondary {
+    background-image: linear-gradient(to right, #E2E8F0, #CBD5E1); /* אפור כחלחל */
+    color: var(--text-dark);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+.btn-secondary:hover:not(:disabled) {
+    background-image: linear-gradient(to right, #CBD5E1, #A0AEC0);
+    color: var(--text-dark);
+}
+body.dark .btn-secondary {
+    background-image: linear-gradient(to right, var(--dark-border-dark), #334155);
+    color: var(--dark-text-light);
+}
+body.dark .btn-secondary:hover:not(:disabled) {
+    background-image: linear-gradient(to right, #475569, var(--dark-border-dark));
+}
+
+/* Danger Button (Red) */
+/* כפתור אזהרה (אדום) */
+.btn-danger {
+    background-image: linear-gradient(to right, var(--danger-color), #F87171); /* אדום */
+}
+.btn-danger:hover:not(:disabled) {
+    background-image: linear-gradient(to right, #B91C1C, var(--danger-color));
+}
+
+/* Action Buttons (small, icon-only) */
+/* כפתורי פעולה (קטנים, אייקונים בלבד) */
+.action-btn {
+    background-color: var(--surface-light);
+    border-radius: 16px; /* פינות מעוגלות יותר */
+    border: 1px solid var(--border-light);
+    font-size: 1.6rem; /* גדול יותר */
+    padding: 0.6rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    color: var(--text-medium);
+}
+.action-btn:hover:not(:disabled) {
+    transform: scale(1.15); /* אפקט הגדלה עדין יותר */
+    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.2); /* צללית טורקיז עדינה */
+    color: var(--accent-color);
+}
+.action-btn:active:not(:disabled) {
+    transform: scale(1.05);
+}
+body.dark .action-btn {
+    background-color: var(--dark-surface-dark);
+    border-color: var(--dark-border-dark);
+    color: var(--dark-text-medium);
+}
+body.dark .action-btn:hover:not(:disabled) {
+    background-color: rgba(34, 211, 238, 0.1); /* גוון טורקיז עדין */
+    color: var(--dark-accent-color);
+}
+
+
+/* Input Fields */
+/* שדות קלט */
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 0.8rem 1.2rem;
+    border: 1px solid var(--border-light);
+    border-radius: 14px; /* פינות מעוגלות יותר */
+    font-size: 1.1rem;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); /* צללית פנימית עדינה */
+    background-color: var(--surface-light);
+    color: var(--text-dark);
     transition: all 0.3s ease;
 }
-
-/* KPI Cards */
-.kpi-card {
-    @apply glass-effect p-5 flex flex-col items-center justify-center text-center;
-    background-color: rgba(255, 255, 255, 0.1); /* Default KPI card background */
-    border: 1px solid rgba(255, 255, 255, 0.2); /* Default KPI card border */
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 5px rgba(6, 182, 212, 0.25), inset 0 2px 5px rgba(0,0,0,0.05); /* צללית פוקוס טורקיז */
 }
-/* Specific KPI card overrides for warning colors */
-.kpi-card.bg-red-600 {
-    background-color: rgba(220, 38, 38, 0.3); /* Custom opacity for red */
-}
-.kpi-card.bg-yellow-600 {
-    background-color: rgba(202, 138, 4, 0.3); /* Custom opacity for yellow */
-}
-.kpi-card.bg-orange-600 {
-    background-color: rgba(249, 115, 22, 0.3); /* Custom opacity for orange */
+.form-textarea {
+    min-height: 80px;
+    resize: vertical;
 }
 
-
-/* Action Buttons */
-.action-btn {
-    @apply rounded-xl shadow-md transition duration-300 ease-in-out transform;
-    /* Tailwind classes are already used directly in HTML, so this is for potential custom overrides */
+/* File input custom styling */
+/* סגנון מותאם אישית לקלט קובץ */
+.form-input[type="file"] {
+    padding: 0.5rem; /* Adjust padding for file input */
+    border: 1px dashed var(--border-light); /* Dashed border for file input */
+    background-color: var(--background-light);
 }
-
-/* Table Specific Styles */
-#ordersTable {
-    @apply w-full; /* Ensure table fills width */
+.form-input[type="file"]::-webkit-file-upload-button {
+    /* Styles for the "Choose File" button */
+    background-color: var(--primary-brand);
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
 }
-
-#ordersTable thead {
-    @apply glass-effect;
-    background-color: rgba(255, 255, 255, 0.15); /* Slightly darker glass for header */
+.form-input[type="file"]::-webkit-file-upload-button:hover {
+    background-color: var(--secondary-brand);
 }
-
-#ordersTable th {
-    @apply py-3 px-4 text-white text-opacity-90;
-    white-space: nowrap; /* Prevent wrapping for headers */
+body.dark .form-input[type="file"]::-webkit-file-upload-button {
+    background-color: var(--dark-primary-brand);
+    color: var(--dark-text-dark);
 }
-
-#ordersTableBody tr {
-    @apply glass-effect mb-2; /* Apply glass effect to each row */
-    display: table-row; /* Ensure table-row display */
-    background-color: rgba(255, 255, 255, 0.08); /* Slightly lighter background for rows */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Separator between rows */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Softer shadow for rows */
-}
-
-#ordersTableBody td {
-    @apply py-3 px-4 text-white text-opacity-80;
-    white-space: nowrap; /* Prevent wrapping for cell content */
-}
-
-/* Overdue Row Animation (Subtle Glow) */
-@keyframes subtle-glow {
-    0%, 100% {
-        background-color: rgba(220, 38, 38, 0.2); /* Red with 20% opacity */
-        box-shadow: 0 0 5px rgba(220, 38, 38, 0.4); /* Subtle red glow */
-    }
-    50% {
-        background-color: rgba(220, 38, 38, 0.35); /* Slightly more intense red */
-        box-shadow: 0 0 10px rgba(220, 38, 38, 0.6); /* More prominent glow */
-    }
-}
-
-.overdue-row {
-    animation: subtle-glow 2s infinite alternate ease-in-out; /* Apply the glow animation */
-    /* Ensure glass effect is still present */
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 1rem;
+body.dark .form-input[type="file"]::-webkit-file-upload-button:hover {
+    background-color: var(--dark-secondary-brand);
 }
 
 
-/* Popup/Modal Styles */
-#modalOverlay {
-    /* Tailwind classes handle hidden/fixed/bg-opacity, but add initial state for transition */
-    opacity: 0;
-    transform: scale(0.95);
-    visibility: hidden;
-}
-
-#modalOverlay.active {
-    opacity: 1;
-    transform: scale(1);
-    visibility: visible;
-}
-
-#modalOverlay > div { /* The actual modal content box */
-    @apply glass-effect;
-    opacity: 0;
-    transform: scale(0.95);
-    transition: all 0.3s ease-out;
-}
-
-#modalOverlay.active > div {
-    opacity: 1;
-    transform: scale(1);
-}
-
-/* Toast Notifications */
-.toast {
-    @apply p-3 rounded-lg shadow-md text-sm font-semibold text-white;
-    background-color: rgba(0, 0, 0, 0.6); /* Dark semi-transparent background */
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    animation: fade-in-out 3s forwards;
-    position: relative;
-    overflow: hidden; /* For progress bar */
-}
-
-.toast.success { background-color: rgba(40, 167, 69, 0.7); } /* Green for success */
-.toast.error { background-color: rgba(220, 53, 69, 0.7); } /* Red for error */
-.toast.warning { background-color: rgba(255, 193, 7, 0.7); } /* Yellow for warning */
-.toast.info { background-color: rgba(23, 162, 184, 0.7); } /* Blue for info */
-
-@keyframes fade-in-out {
-    0% { opacity: 0; transform: translateY(20px); }
-    10% { opacity: 1; transform: translateY(0); }
-    90% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(20px); }
-}
-
-/* Tooltip for action buttons (basic example) */
-.tooltip {
-    position: relative;
-    display: inline-block;
-}
-
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: max-content;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px 8px;
+/* Autocomplete Dropdown */
+/* רשימת השלמה אוטומטית */
+.autocomplete-items {
     position: absolute;
-    z-index: 1;
-    bottom: 125%; /* Position above the button */
-    left: 50%;
-    transform: translateX(50%); /* Adjust for RTL */
-    opacity: 0;
-    transition: opacity 0.3s;
+    border: 1px solid var(--border-light);
+    border-bottom: none;
+    border-top: none;
+    z-index: 99;
+    /*position the autocomplete items to be the same width as the input:*/
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 14px;
+    background-color: var(--surface-light);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+body.dark .autocomplete-items {
+    background-color: var(--dark-surface-dark);
+    border-color: var(--dark-border-dark);
+}
+.autocomplete-items div {
+    padding: 10px;
+    cursor: pointer;
+    background-color: #fff;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-dark);
+}
+body.dark .autocomplete-items div {
+    background-color: var(--dark-surface-dark);
+    border-color: var(--dark-border-dark);
+    color: var(--dark-text-light);
+}
+.autocomplete-items div:hover {
+    /*when hovering an item:*/
+    background-color: var(--background-light);
+}
+body.dark .autocomplete-items div:hover {
+    background-color: var(--dark-background-dark);
+}
+.autocomplete-active {
+    /*when navigating through the items using the arrow keys:*/
+    background-color: var(--primary-brand) !important;
+    color: #ffffff;
 }
 
-.tooltip:hover .tooltiptext {
+/* Modals */
+/* מודאלים */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* רקע כהה שקוף */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.modal-overlay.active {
+    opacity: 1;
     visibility: visible;
+}
+.modal-content {
+    background-color: var(--surface-light);
+    padding: 2.5rem;
+    border-radius: 30px; /* פינות מעוגלות יותר */
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6); /* צללית חזקה יותר */
+    position: relative;
+    max-width: 90%;
+    width: 600px;
+    transform: translateY(-50px);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+.modal-overlay.active .modal-content {
+    transform: translateY(0);
     opacity: 1;
 }
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--text-medium);
+    transition: all 0.2s ease;
+}
+.modal-close-btn:hover {
+    color: var(--danger-color); /* אדום בריחוף */
+    transform: rotate(270deg) scale(1.2);
+}
+.modal-full-width { /* For larger modals like overdue customers */
+    max-width: 95%;
+    width: 1000px;
+}
 
-/* Responsive adjustments */
+/* Mobile Drawer Modal (overrides for small screens) */
+/* מודאל מגירת מובייל (שינויים למסכים קטנים) */
 @media (max-width: 768px) {
-    header {
-        flex-direction: column;
-        align-items: center;
+    .modal-overlay.mobile-drawer {
+        align-items: flex-end; /* יישר לתחתית */
     }
-    header h1 {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-    }
-    .kpi-card {
-        padding: 1rem;
-    }
-    .kpi-card p {
-        font-size: 2.5rem;
-    }
-    #ordersTable thead {
-        display: none; /* Hide table header on small screens */
-    }
-    #ordersTable, #ordersTable tbody, #ordersTable tr, #ordersTable td {
-        display: block; /* Make table elements act as blocks */
+    .modal-overlay.mobile-drawer .modal-content {
         width: 100%;
+        max-width: 100%;
+        border-radius: 25px 25px 0 0; /* פינות עליונות מעוגלות בלבד */
+        transform: translateY(100%); /* מתחיל מחוץ למסך */
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
     }
-    #ordersTable tr {
-        margin-bottom: 1rem;
-        padding: 1rem;
+    .modal-overlay.mobile-drawer.active .modal-content {
+        transform: translateY(0); /* נכנס מלמטה */
     }
-    #ordersTable td {
-        text-align: right;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        position: relative;
-        padding-right: 50%; /* Space for pseudo-element labels */
+    .modal-full-width { /* Ensure full width on mobile even for special modals */
+        width: 100%;
+        max-width: 100%;
     }
-    #ordersTable td::before {
-        content: attr(data-label);
-        position: absolute;
-        right: 0.5rem;
-        width: 45%;
-        padding-left: 10px;
-        font-weight: bold;
-        color: rgba(255, 255, 255, 0.7);
+}
+
+/* Tables */
+/* טבלאות */
+.table-container {
+    overflow-x: auto; /* מאפשר גלילה אופקית בטבלה במובייל */
+    border-radius: 20px;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, var(--shadow-strength));
+    border: 1px solid var(--border-light);
+    background-color: var(--surface-light);
+    padding: 1rem;
+}
+table {
+    width: 100%;
+    border-collapse: separate; /* מאפשר border-radius בתא */
+    border-spacing: 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+th, td {
+    padding: 0.75rem 1rem;
+    text-align: right;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-medium);
+    white-space: nowrap; /* מונע שבירת שורות בטקסט בתא */
+}
+th {
+    background-color: var(--background-light);
+    font-weight: 700;
+    color: var(--text-dark);
+    position: sticky; /* מונע גלילה של כותרת הטבלה */
+    top: 0;
+    z-index: 10;
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+th:hover {
+    background-color: #F0F2F5; /* גוון בהיר בריחוף על כותרת */
+    color: var(--primary-brand);
+}
+body.dark th:hover {
+    background-color: #263345;
+    color: var(--dark-primary-brand);
+}
+
+tr:nth-child(even) {
+    background-color: #FDFEFF; /* שורות זוגיות מעט כהות יותר */
+}
+tr:hover {
+    background-color: #EFF6FF; /* מעבר עכבר עם גוון כחלחל */
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15); /* צללית סגולה עדינה */
+}
+body.dark tr:hover {
+    background-color: #2E3A4B;
+    box-shadow: 0 0 20px rgba(165, 180, 252, 0.15);
+}
+
+/* Specific row colors based on status or type */
+/* צבעי שורות ספציפיים על בסיס סטטוס או סוג */
+.overdue-row {
+    background-color: #FEE2E2; /* Red 100 */
+    border-right: 5px solid var(--danger-color); /* פס אדום בצד ימין */
+    transition: all 0.3s ease;
+}
+.overdue-row:hover {
+    background-color: #FECDCD; /* Red 200 light */
+}
+body.dark .overdue-row {
+    background-color: rgba(220, 38, 38, 0.2) !important; /* אדום שקוף יותר במצב כהה */
+    border-right-color: var(--dark-danger-color);
+}
+body.dark .overdue-row:hover {
+    background-color: rgba(220, 38, 38, 0.3) !important;
+}
+
+/* Very overdue highlight */
+/* הדגשה לחריגה קיצונית */
+.overdue-110-days {
+    background-color: #FDE68A !important; /* Amber 100 */
+    border-left: 8px solid #F59E0B; /* Amber 500 */
+}
+body.dark .overdue-110-days {
+    background-color: #581C87 !important; /* כהה יותר, סגול-אדום כהה */
+    border-left-color: #9333EA; /* Purple 600 */
+}
+
+/* Status text colors */
+/* צבעי טקסט לסטטוס */
+.status-פתוח { color: var(--success-color); font-weight: 600; }
+.status-סגור { color: var(--text-medium); font-weight: 600; }
+.status-חורג { color: var(--danger-color); font-weight: 600; }
+.status-ממתיןלאתקין { color: var(--info-color); font-weight: 600; }
+.status-טופל { color: var(--success-color); font-weight: 600; } /* New status */
+
+
+/* Table cell with action buttons */
+/* תא טבלה עם כפתורי פעולה */
+.action-buttons-cell {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    align-items: center;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+.action-buttons-cell .action-btn {
+    font-size: 1.2rem;
+    padding: 0.4rem;
+}
+
+/* Highlight for search results */
+/* הדגשה לתוצאות חיפוש */
+.highlight {
+    background-color: #FEF9C3; /* Yellow 100 */
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+body.dark .highlight {
+    background-color: #A16207; /* Amber 800 */
+    color: #FDE68A; /* Amber 100 */
+}
+
+/* Container "pills" within table cells */
+/* "כפתורי" מכולה בתוך תאי טבלה */
+.container-pill {
+    display: inline-block;
+    padding: 0.5em 1em;
+    margin: 2px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.container-pill:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+}
+.container-pill.bg-blue-100 {
+    background-color: #DBEAFE; /* Blue 100 */
+    color: #1E40AF; /* Blue 800 */
+}
+body.dark .container-pill.bg-blue-100 {
+    background-color: #1E3A8A; /* Blue 900 */
+    color: #BFDBFE; /* Blue 200 */
+}
+.container-pill.bg-purple-100 {
+    background-color: #EDE9FE; /* Purple 100 */
+    color: #5B21B6; /* Purple 800 */
+}
+body.dark .container-pill.bg-purple-100 {
+    background-color: #4C1D95; /* Purple 900 */
+    color: #DDD6FE; /* Purple 200 */
+}
+.container-pill.bg-gray-100 {
+    background-color: #F3F4F6; /* Gray 100 */
+    color: #374151; /* Gray 800 */
+}
+body.dark .container-pill.bg-gray-100 {
+    background-color: #374151; /* Gray 700 */
+    color: #D1D5DB; /* Gray 300 */
+}
+.container-pill.bg-green-100 {
+    background-color: #D1FAE5; /* Green 100 */
+    color: #065F46; /* Green 800 */
+}
+body.dark .container-pill.bg-green-100 {
+    background-color: #064E3B; /* Green 900 */
+    color: #A7F3D0; /* Green 300 */
+}
+
+
+/* Pagination Controls */
+/* פקדי דפדוף (Pagination) */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    font-size: 1.1rem;
+    color: var(--text-medium);
+}
+.pagination-btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background-color: var(--surface-light);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+.pagination-btn:hover:not(:disabled) {
+    background-color: var(--background-light);
+    border-color: var(--primary-brand);
+    color: var(--primary-brand);
+    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.1);
+}
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+body.dark .pagination-btn {
+    background-color: var(--dark-surface-dark);
+    border-color: var(--dark-border-dark);
+    color: var(--dark-text-light);
+}
+body.dark .pagination-btn:hover:not(:disabled) {
+    background-color: var(--dark-background-dark);
+    border-color: var(--dark-primary-brand);
+    color: var(--dark-primary-brand);
+}
+.pagination-info {
+    font-weight: 500;
+    color: var(--text-medium);
+}
+body.dark .pagination-info {
+    color: var(--dark-text-medium);
+}
+
+/* Chart Containers */
+/* מיכלי תרשימים */
+.chart-container {
+    background-color: var(--surface-light);
+    border-radius: 20px;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, var(--shadow-strength));
+    border: 1px solid var(--border-light);
+    padding: 1.5rem;
+    position: relative;
+    height: 400px; /* גובה קבוע לתרשימים בדאשבורד */
+    overflow: hidden; /* מונע גלישה של אלמנטים מחוץ לתרשים */
+}
+.chart-container.chart-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1002; /* מעל מודאלים רגילים */
+    background-color: var(--surface-light); /* רקע מלא למצב מסך מלא */
+    padding: 2rem;
+    border-radius: 0;
+    box-shadow: none;
+    transition: all 0.3s ease;
+}
+body.dark .chart-container.chart-fullscreen {
+    background-color: var(--dark-background-dark);
+}
+/* D3 chart specific styles */
+/* סגנונות ספציפיים לתרשימי D3 */
+.chart-text {
+    font-size: 0.8rem;
+    fill: var(--text-medium);
+}
+.tooltip-text {
+    font-size: 0.9rem;
+    fill: var(--text-dark);
+    font-weight: 600;
+}
+.chart-bar {
+    transition: fill 0.2s ease, transform 0.2s ease;
+}
+.chart-bar:hover {
+    filter: brightness(1.1); /* הבהרה בריחוף */
+}
+.pie-slice path {
+    transition: fill 0.2s ease;
+}
+.pie-slice text {
+    cursor: pointer;
+}
+.pie-slice text:hover {
+    font-weight: 700;
+    fill: var(--accent-color);
+}
+.legend-text {
+    font-size: 0.9rem;
+    fill: var(--text-dark);
+}
+body.dark .chart-text, body.dark .legend-text, body.dark .tooltip-text {
+    fill: var(--dark-text-light);
+}
+
+
+/* Navigation Tabs (Desktop Top Nav) */
+/* כרטיסיות ניווט (ניווט עליון לשולחני) */
+.nav-tabs {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    background-color: var(--surface-light);
+    padding: 0.75rem;
+    border-radius: 25px; /* פינות מעוגלות יותר */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-light);
+    flex-wrap: wrap; /* מאפשר גלישה לשורות חדשות במכשירים קטנים יותר */
+}
+.nav-tab-btn {
+    padding: 1.1rem 2.2rem;
+    border-radius: 18px; /* פינות מעוגלות יותר */
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text-medium);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.nav-tab-btn.active {
+    background-image: linear-gradient(to right, var(--primary-brand), var(--secondary-brand));
+    color: white;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35); /* צללית בולטת לסגול */
+    transform: translateY(-2px);
+}
+.nav-tab-btn:not(.active):hover {
+    background-color: #EEF2FF; /* Indigo 50 - גוון בהיר בריחוף */
+    color: var(--primary-brand);
+    transform: translateY(-2px);
+}
+
+/* Mobile Bottom Navigation Bar */
+/* סרגל ניווט תחתון למובייל */
+.bottom-nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background-color: var(--surface-light);
+    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.15); /* צללית עליונה בולטת */
+    padding: 0.5rem 0;
+    z-index: 50; /* מעל תוכן אבל מתחת למודאלים */
+    border-top: 1px solid var(--border-light);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+body.dark .bottom-nav-bar {
+    border-color: var(--dark-border-dark);
+}
+.bottom-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-medium);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 12px;
+    height: 65px; /* גובה קבוע לכפתורים */
+}
+.bottom-nav-btn i {
+    font-size: 1.5rem;
+    margin-bottom: 0.2rem;
+}
+.bottom-nav-btn.active {
+    color: var(--primary-brand);
+    background-color: #EEF2FF; /* Indigo 50 */
+}
+.bottom-nav-btn:hover:not(.active) {
+    background-color: #F0F2F5; /* גוון בהיר בריחוף */
+    color: var(--primary-brand);
+}
+body.dark .bottom-nav-btn.active {
+    background-color: #1A2430; /* כהה יותר במצב כהה */
+    color: var(--dark-primary-brand);
+}
+body.dark .bottom-nav-btn:hover:not(.active) {
+    background-color: #263345;
+    color: var(--dark-primary-brand);
+}
+
+
+/* Kanban Board Styles */
+/* סגנונות לוח קאנבן */
+.kanban-column {
+    background-color: var(--background-light);
+    border-radius: 20px;
+    padding: 1.5rem;
+    min-height: 400px; /* גובה מינימלי לעמודה */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: all 0.2s ease;
+}
+body.dark .kanban-column {
+    background-color: var(--dark-background-dark);
+    border-color: var(--dark-border-dark);
+}
+.kanban-column.drag-over {
+    background-color: #DBEAFE; /* Blue 100 */
+    border-color: var(--primary-brand);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+}
+body.dark .kanban-column.drag-over {
+    background-color: #1E3A8A; /* Darker blue */
+    border-color: var(--dark-primary-brand);
+}
+
+.kanban-item {
+    background-color: var(--surface-light);
+    padding: 1rem;
+    border-radius: 12px; /* פינות מעוגלות יותר */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    cursor: grab;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-light);
+    position: relative;
+    font-size: 0.95rem;
+}
+body.dark .kanban-item {
+    background-color: var(--dark-surface-dark);
+    border-color: var(--dark-border-dark);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.kanban-item:hover {
+    transform: translateY(-3px); /* אפקט ריחוף עדין */
+    box-shadow: 0 7px 18px rgba(0,0,0,0.2);
+}
+.kanban-item:active { cursor: grabbing; }
+.kanban-item.dragging {
+    opacity: 0.7;
+    border: 2px dashed var(--primary-brand);
+    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+}
+
+.kanban-item h4 {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-dark);
+}
+body.dark .kanban-item h4 { color: var(--dark-text-light); }
+.kanban-item p {
+    font-size: 0.9rem;
+    color: var(--text-medium);
+}
+body.dark .kanban-item p { color: var(--dark-text-medium); }
+
+.overdue-days-badge {
+    background-color: #FEE2E2; /* Red 100 */
+    color: #DC2626; /* Red 600 */
+    padding: 0.2em 0.6em;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+body.dark .overdue-days-badge {
+    background-color: #450A0A; /* Dark Red 900 */
+    color: #FCA5A5; /* Red 300 */
+}
+
+/* History Section Toggle button */
+/* כפתור החלפת תצוגת היסטוריה */
+.history-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 1rem;
+    margin-top: 1.5rem;
+    background-color: var(--background-light);
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-brand);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+.history-section-toggle:hover {
+    background-color: #EEF2FF;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.15);
+}
+.history-section-toggle i {
+    transition: transform 0.3s ease;
+}
+.history-section-toggle.expanded i {
+    transform: rotate(180deg);
+}
+body.dark .history-section-toggle {
+    background-color: var(--dark-background-dark);
+    border-color: var(--dark-border-dark);
+    color: var(--dark-primary-brand);
+}
+body.dark .history-section-toggle:hover {
+    background-color: #1A2430;
+    box-shadow: 0 8px 20px rgba(165, 180, 252, 0.15);
+}
+
+/* Inventory Page Layout */
+/* פריסת עמוד מלאי */
+.inventory-flex-container {
+    display: flex;
+    flex-direction: column; /* ברירת מחדל: עמודות מובייל */
+    gap: 1.5rem;
+}
+@media (min-width: 1024px) { /* lg breakpoint and up */
+    .inventory-flex-container {
+        flex-direction: row; /* שורות בשולחני */
+        align-items: flex-start; /* יישור לחלק העליון */
     }
 }
