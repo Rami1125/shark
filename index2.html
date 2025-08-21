@@ -3383,4 +3383,346 @@ ${order['הערות'] ? `הערות: ${order['הערות']}\n` : ''}
             // Uploads Table
             if (['העלאה', 'החלפה'].includes(order['סוג פעולה'])) {
                 const row = uploadsBody.insertRow();
-                row.className = `border-b border-[
+                row.className = `border-b border-[var(--color-border)] status-${statusClass}`;
+                row.innerHTML = `
+                    <td class="p-2">${formatDate(orderDate)}</td>
+                    <td class="p-2">${order['תעודה'] || ''}</td>
+                    <td class="p-2">${order['מספר מכולה עלתה'] || ''}</td>
+                    <td class="p-2"><span class="status-${statusClass}">${order._effectiveStatus || ''}</span></td>
+                    <td class="p-2">${daysPassed}</td>
+                    <td class="p-2"><button class="action-icon-btn text-lg" onclick="event.stopPropagation(); showOrderDetailsModal(${order.sheetRow})" title="פרטי הזמנה"><i class="fas fa-info-circle text-[var(--color-secondary)]"></i></button></td>
+                `;
+                timelineEvents.push({
+                    date: orderDate,
+                    type: 'העלאה',
+                    label: `העלאה: ${order['תעודה']}`,
+                    sheetRow: order.sheetRow,
+                    effectiveStatus: order._effectiveStatus
+                });
+            }
+        });
+
+        if (downloadsBody.children.length === 0) {
+            document.getElementById('no-downloads').classList.remove('hidden');
+        }
+        if (uploadsBody.children.length === 0) {
+            document.getElementById('no-uploads').classList.remove('hidden');
+        }
+
+        // Render Timeline
+        timelineEvents.sort((a,b) => a.date - b.date); // Ensure chronological order for timeline
+
+        timelineEvents.forEach(event => {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'timeline-event';
+            const statusColorClass = (event.effectiveStatus || '').replace(/[/ ]/g, '-').toLowerCase();
+
+            eventDiv.innerHTML = `
+                <span class="timeline-dot status-${statusColorClass}" onclick="event.stopPropagation(); showOrderDetailsModal(${event.sheetRow})" title="${event.label}"></span>
+                <span class="timeline-text status-${statusColorClass}" onclick="event.stopPropagation(); showOrderDetailsModal(${event.sheetRow})">${event.label} (${formatDate(event.date)})</span>
+            `;
+            timelineContainer.appendChild(eventDiv);
+        });
+
+        openModal('customer-analysis-details-modal');
+    }
+
+    // --- Charting Functions ---
+    let chartContainersByCustomer = null;
+    let chartStatusPie = null;
+    let chartActionType = null;
+
+    function drawCharts() {
+        // Destroy existing charts if they exist to prevent memory leaks and conflicts
+        if (chartContainersByCustomer) chartContainersByCustomer.destroy();
+        if (chartStatusPie) chartStatusPie.destroy();
+        if (chartActionType) chartActionType.destroy();
+
+        // Chart 1: Containers in Use by Customer (Top 5)
+        const activeOrders = allOrders.filter(o => o._effectiveStatus === 'פתוח' || o._effectiveStatus === 'חורג');
+        const customerContainerCounts = activeOrders.reduce((acc, order) => {
+            const customerName = order['שם לקוח'];
+            const containersTaken = String(order['מספר מכולה ירדה'] || '').split(',').map(c => c.trim()).filter(Boolean);
+            if (customerName && containersTaken.length > 0) {
+                acc[customerName] = (acc[customerName] || 0) + containersTaken.length;
+            }
+            return acc;
+        }, {});
+
+        const sortedCustomers = Object.entries(customerContainerCounts)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 5); // Top 5 customers
+        
+        const customerLabels = sortedCustomers.map(entry => entry[0]);
+        const customerData = sortedCustomers.map(entry => entry[1]);
+
+        const chartContainersByCustomerCtx = document.getElementById('chart-containers-by-customer').getContext('2d');
+        chartContainersByCustomer = new Chart(chartContainersByCustomerCtx, {
+            type: 'bar',
+            data: {
+                labels: customerLabels,
+                datasets: [{
+                    label: 'מספר מכולות בשימוש',
+                    data: customerData,
+                    backgroundColor: 'rgba(46, 139, 87, 0.7)', // Sea Green
+                    borderColor: 'rgba(46, 139, 87, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true },
+                    x: { ticks: { color: 'var(--color-text-base)' } } // X-axis label color
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'var(--color-text-base)' // Legend text color
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 2: Order Status Distribution (Pie Chart)
+        const statusCounts = allOrders.reduce((acc, order) => {
+            const status = order._effectiveStatus;
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {});
+
+        const statusLabels = Object.keys(statusCounts);
+        const statusData = Object.values(statusCounts);
+        const statusColors = statusLabels.map(label => {
+            if (label === 'פתוח') return 'rgba(76, 175, 80, 0.8)'; // Green for open
+            if (label === 'חורג') return 'rgba(214, 69, 69, 0.8)'; // Red for overdue
+            if (label === 'סגור') return 'rgba(96, 125, 139, 0.8)'; // Blue-Grey for closed
+            return 'rgba(0,0,0,0.5)'; // Default
+        });
+
+        const chartStatusPieCtx = document.getElementById('chart-status-pie').getContext('2d');
+        chartStatusPie = new Chart(chartStatusPieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: statusColors,
+                    borderColor: 'var(--color-surface)', // Background color for borders
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'var(--color-text-base)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 3: Action Type Distribution (Doughnut Chart)
+        const actionTypeCounts = allOrders.reduce((acc, order) => {
+            const type = order['סוג פעולה'];
+            if (type) {
+                acc[type] = (acc[type] || 0) + 1;
+            }
+            return acc;
+        }, {});
+
+        const actionTypeLabels = Object.keys(actionTypeCounts);
+        const actionTypeData = Object.values(actionTypeCounts);
+        const actionColors = actionTypeLabels.map(label => {
+            if (label === 'הורדה') return 'rgba(76, 175, 80, 0.8)';   // Green
+            if (label === 'החלפה') return 'rgba(255, 193, 7, 0.8)';   // Amber
+            if (label === 'העלאה') return 'rgba(214, 69, 69, 0.8)';    // Red
+            return 'rgba(0,0,0,0.5)'; // Default
+        });
+
+        const chartActionTypeCtx = document.getElementById('chart-action-type').getContext('2d');
+        chartActionType = new Chart(chartActionTypeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: actionTypeLabels,
+                datasets: [{
+                    data: actionTypeData,
+                    backgroundColor: actionColors,
+                    borderColor: 'var(--color-surface)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'var(--color-text-base)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- Page Navigation ---
+    let currentPage = 'dashboard';
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page-content').forEach(page => {
+            page.classList.add('hidden');
+        });
+        document.getElementById(`${pageId}-page`).classList.remove('hidden');
+
+        document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(`nav-${pageId}`).classList.add('active');
+        currentPage = pageId;
+
+        // Re-render relevant sections when navigating
+        if (pageId === 'dashboard') {
+            updateDashboard(); // Redraw charts
+            filterTable(); // Re-render main orders table
+        } else if (pageId === 'container-inventory') {
+            updateContainerInventory();
+        } else if (pageId === 'treatment-board') {
+            renderTreatmentBoard();
+        } else if (pageId === 'whatsapp-alerts') {
+            populateWhatsAppTemplates();
+            renderAlertsTable();
+        } else if (pageId === 'reports') {
+            filterReports(); // Re-filter and draw charts/table for reports
+        } else if (pageId === 'customer-analysis') {
+            populateCustomerAnalysisTable();
+        }
+    }
+
+    function scrollToOrdersTable() {
+        const table = document.getElementById('orders-table');
+        if (table) {
+            table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // --- Scroll to Top Button ---
+    window.onscroll = function() { scrollFunction() };
+
+    function scrollFunction() {
+        const scrollToTopBtn = document.getElementById("scroll-to-top-btn");
+        if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+            scrollToTopBtn.style.display = "block";
+        } else {
+            scrollToTopBtn.style.display = "none";
+        }
+    }
+
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- Login/Logout Functions (Basic Example) ---
+    const VALID_USERNAME = 'user';
+    const VALID_PASSWORD = 'password';
+
+    function handleLogin() {
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorMessage = document.getElementById('login-error-message');
+
+        if (usernameInput.value === VALID_USERNAME && passwordInput.value === VALID_PASSWORD) {
+            errorMessage.classList.add('hidden');
+            performGateAnimation();
+            localStorage.setItem('loggedIn', 'true');
+            // Simulate API call for login (if you had a backend auth)
+            setTimeout(() => {
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('main-app-content').classList.remove('hidden');
+                loadOrders(); // Load initial data after successful login
+            }, 1600); // Allow animation to play
+        } else {
+            errorMessage.classList.remove('hidden');
+            usernameInput.classList.add('border-red-500');
+            passwordInput.classList.add('border-red-500');
+            setTimeout(() => {
+                usernameInput.classList.remove('border-red-500');
+                passwordInput.classList.remove('border-red-500');
+            }, 1000);
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('loggedIn');
+        document.getElementById('main-app-content').classList.add('hidden');
+        document.getElementById('login-page').classList.remove('hidden');
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('login-error-message').classList.add('hidden');
+        resetGateAnimation(); // Reset gate for next login
+    }
+
+    function checkLoginStatus() {
+        if (localStorage.getItem('loggedIn') === 'true') {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('main-app-content').classList.remove('hidden');
+            loadOrders(); // Load initial data if already logged in
+        }
+    }
+
+    function performGateAnimation() {
+        const gateContainer = document.getElementById('gate-animation-container');
+        const leftGate = document.getElementById('left-gate');
+        const rightGate = document.getElementById('right-gate');
+
+        gateContainer.classList.remove('hidden');
+        gateContainer.style.visibility = 'visible';
+        gateContainer.style.pointerEvents = 'auto'; // Block interaction during animation
+
+        // Delay opening animation slightly to allow visibility to update
+        setTimeout(() => {
+            leftGate.classList.add('open');
+            rightGate.classList.add('open');
+        }, 50);
+
+        // After animation completes, hide the gate and re-enable pointer events
+        setTimeout(() => {
+            gateContainer.style.visibility = 'hidden';
+            gateContainer.classList.add('hidden'); // Fully hide
+            gateContainer.style.pointerEvents = 'none';
+            leftGate.classList.remove('open'); // Reset for next time
+            rightGate.classList.remove('open'); // Reset for next time
+        }, 1500); // Matches transition duration
+    }
+
+    function resetGateAnimation() {
+        const gateContainer = document.getElementById('gate-animation-container');
+        const leftGate = document.getElementById('left-gate');
+        const rightGate = document.getElementById('right-gate');
+        
+        // Ensure gates are closed and hidden for next login
+        leftGate.classList.remove('open');
+        rightGate.classList.remove('open');
+        gateContainer.classList.add('hidden');
+        gateContainer.style.visibility = 'hidden';
+        gateContainer.style.pointerEvents = 'none';
+    }
+
+
+    // --- Initializations on page load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTheme();
+        checkLoginStatus(); // Check if user is already logged in
+        showPage('dashboard'); // Ensure dashboard is the default view
+    });
+
+</script>
+</body>
+</html>
